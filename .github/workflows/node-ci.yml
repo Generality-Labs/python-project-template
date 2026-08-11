@@ -1,6 +1,6 @@
 name: Node CI
 
-# Reusable CI for the TypeScript/JavaScript side of MattFisher projects:
+# Reusable CI for the TypeScript/JavaScript side of Generality Labs projects:
 # install, type-check, and build. Consumers call it from a thin workflow — see
 # the scaffolded `.github/workflows/ci.yml`.
 #

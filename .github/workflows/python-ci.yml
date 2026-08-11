@@ -1,8 +1,8 @@
 name: Python CI
 
-# Reusable CI for MattFisher Python projects: uv install, basedpyright, pytest,
-# and the shared pre-commit stack (ruff + zizmor + mdformat). Consumers call it
-# from a thin workflow — see the scaffolded `.github/workflows/ci.yml`.
+# Reusable CI for Generality Labs Python projects: uv install, basedpyright,
+# pytest, and the shared pre-commit stack (ruff + zizmor + mdformat). Consumers
+# call it from a thin workflow — see the scaffolded `.github/workflows/ci.yml`.
 on:
   workflow_call:
     inputs:

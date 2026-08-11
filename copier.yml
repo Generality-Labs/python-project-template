@@ -98,7 +98,7 @@ coverage_floor:
 
 github_owner:
   type: str
-  default: MattFisher
+  default: Generality-Labs
 
 author_name:
   type: str

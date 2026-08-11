@@ -14,6 +14,13 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 ## [Unreleased]
 
+### Changed
+
+- Rebranded for the Generality-Labs fork: `github_owner` now defaults to
+  `Generality-Labs`, so scaffolded projects call the reusable workflows and
+  pin their zizmor/Dependabot exceptions against this repo. README, LICENSE
+  and workflow header comments updated to match.
+
 ### Fixed
 
 - The scaffolded typos hook skips `.copier-answers.yml`. The file is generated, and its `_commit` is whatever ref the last update used — when that is a short SHA rather than a tag, its leading hex characters are a coin flip away from a word typos reads as misspelled, and `ba338ef` duly tripped `ba` → `by`, `be`. Nothing in the file is prose, so checking it could only ever produce false positives, on a schedule nobody controls.
@@ -182,4 +189,4 @@ The largest release so far: an optional TypeScript side, automated template upda
 [1.7.0]: https://github.com/MattFisher/python-project-template/compare/v1.6.0...v1.7.0
 [1.8.0]: https://github.com/MattFisher/python-project-template/compare/v1.7.0...v1.8.0
 [1.8.1]: https://github.com/MattFisher/python-project-template/compare/v1.8.0...v1.8.1
-[unreleased]: https://github.com/MattFisher/python-project-template/compare/v1.8.1...HEAD
+[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.8.1...HEAD

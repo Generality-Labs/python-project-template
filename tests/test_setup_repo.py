@@ -31,7 +31,9 @@ RULESET = {
     "target": "branch",
     "enforcement": "active",
     "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
-    "bypass_actors": [{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}],
+    "bypass_actors": [
+        {"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}
+    ],
     "rules": [
         {"type": "deletion"},
         {"type": "pull_request", "parameters": {"required_approving_review_count": 0}},
@@ -42,7 +44,9 @@ RULESET = {
 def as_github_returns(ruleset: dict, ruleset_id: int) -> dict:
     """GitHub's copy: same content plus ids, timestamps and defaults for unset parameters."""
     copy = json.loads(json.dumps(ruleset))
-    copy.update({"id": ruleset_id, "source": REPO, "created_at": "2026-01-01T00:00:00Z"})
+    copy.update(
+        {"id": ruleset_id, "source": REPO, "created_at": "2026-01-01T00:00:00Z"}
+    )
     for rule in copy["rules"]:
         if rule["type"] == "pull_request":
             rule["parameters"]["dismiss_stale_reviews_on_push"] = False
@@ -76,7 +80,9 @@ class FakeGh:
                 raise setup_repo.GhError(
                     "HTTP 403: Upgrade to GitHub Pro or make this repository public"
                 )
-            return json.dumps([{"id": r["id"], "name": r["name"]} for r in self.rulesets])
+            return json.dumps(
+                [{"id": r["id"], "name": r["name"]} for r in self.rulesets]
+            )
         if target.startswith(f"repos/{REPO}/rulesets/"):
             wanted = int(target.rsplit("/", 1)[1])
             return json.dumps(next(r for r in self.rulesets if r["id"] == wanted))
@@ -92,18 +98,31 @@ def repo_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return tmp_path
 
 
-def run(gh: FakeGh, *argv: str, interactive: bool = False, answer: str = "n") -> tuple[int, str]:
+def run(
+    gh: FakeGh, *argv: str, interactive: bool = False, answer: str = "n"
+) -> tuple[int, str]:
     lines: list[str] = []
     code = setup_repo.main(
-        [*argv, REPO], gh=gh, out=lines.append, interactive=interactive, ask=lambda _: answer
+        [*argv, REPO],
+        gh=gh,
+        out=lines.append,
+        interactive=interactive,
+        ask=lambda _: answer,
     )
     return code, "\n".join(lines)
 
 
 def test_project_drops_api_only_fields_but_keeps_extra_array_elements() -> None:
-    current = {"id": 1, "a": {"x": 1, "y": 2}, "rules": [{"t": "a", "extra": 1}, {"t": "b"}]}
+    current = {
+        "id": 1,
+        "a": {"x": 1, "y": 2},
+        "rules": [{"t": "a", "extra": 1}, {"t": "b"}],
+    }
     want = {"a": {"x": 0}, "rules": [{"t": "a"}]}
-    assert setup_repo.project(current, want) == {"a": {"x": 1}, "rules": [{"t": "a"}, {"t": "b"}]}
+    assert setup_repo.project(current, want) == {
+        "a": {"x": 1},
+        "rules": [{"t": "a"}, {"t": "b"}],
+    }
 
 
 def test_nothing_to_apply_when_everything_matches(repo_dir: Path) -> None:
@@ -116,7 +135,9 @@ def test_nothing_to_apply_when_everything_matches(repo_dir: Path) -> None:
     assert gh.writes == []
 
 
-def test_first_run_creates_ruleset_and_patches_only_changed_keys(repo_dir: Path) -> None:
+def test_first_run_creates_ruleset_and_patches_only_changed_keys(
+    repo_dir: Path,
+) -> None:
     gh = FakeGh({"delete_branch_on_merge": False, "has_wiki": False}, [])
     code, out = run(gh, "--yes")
     assert code == 0

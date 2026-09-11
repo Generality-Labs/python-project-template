@@ -31,8 +31,9 @@ uvx copier copy gh:Generality-Labs/python-project-template my-new-project
 
 You'll be asked for the name, description, whether it's an app or a library,
 Python version, whether to enable a coverage gate, whether the project has a
-TypeScript/JavaScript frontend, whether to run the typos spell-checker, and
-whether to open template-update PRs automatically.
+TypeScript/JavaScript frontend, whether to run the typos spell-checker, whether to
+open template-update PRs automatically, and whether to manage repo settings
+and a branch ruleset from files (off by default).
 
 ### Turning off `typos`
 
@@ -139,7 +140,12 @@ newer and less complete than a full type-checker's.
 ## Repo settings as code
 
 GitHub keeps repository settings and rulesets in the UI and API rather than in
-files, so the scaffold ships the files *and* the thing that applies them:
+files, so the scaffold can ship the files *and* the thing that applies them.
+This is **opt-in**: answer yes to `use_repo_settings` (default no). Nothing
+changes on GitHub until someone runs the script, but the default is off so a
+`copier update` never drops the files, or the invitation to run them, into a
+downstream repo that didn't ask. An existing project opts in by setting
+`use_repo_settings: true` in `.copier-answers.yml` and running `copier update`.
 
 - `.github/repo-settings.json` is sent verbatim as the body of
   `PATCH /repos/{owner}/{repo}`, so any key [that endpoint

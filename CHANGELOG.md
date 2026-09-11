@@ -16,7 +16,9 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 ### Added
 
-- Repo settings as code: the scaffold ships `.github/repo-settings.json`
+- Repo settings as code, opt-in via `use_repo_settings` (default off, so
+  `copier update --defaults` leaves existing projects alone): the scaffold
+  ships `.github/repo-settings.json`
   (the literal `PATCH /repos/{owner}/{repo}` body: merge methods,
   `delete_branch_on_merge: true` so stacked PRs retarget, wiki/projects off)
   and `.github/rulesets/main.json` (protect the default branch: PRs required,

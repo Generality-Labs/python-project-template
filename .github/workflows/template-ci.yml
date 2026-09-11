@@ -58,6 +58,32 @@ jobs:
             # raising default_language_version is the regression to catch.
             python3 -c "import sys,yaml; cfg=yaml.safe_load(open(sys.argv[1])); hs=[h for r in cfg['repos'] if 'shellcheck-py' in r['repo'] for h in r['hooks'] if h['id']=='shellcheck']; assert len(hs)==1, hs; v=hs[0].get('language_version'); assert v=='python3.12', f'shellcheck language_version is {v!r}'" "/tmp/out-$kind/.pre-commit-config.yaml"
           done
+          # Repo settings as code is opt-in: the defaults carry none of it, so a
+          # `copier update --defaults` cannot push it into downstream repos.
+          for kind in app library; do
+            test ! -e "/tmp/out-$kind/scripts"
+            test ! -e "/tmp/out-$kind/.github/rulesets"
+            test ! -e "/tmp/out-$kind/.github/repo-settings.json"
+          done
+          # The applier is tested against a stubbed gh, here in the template repo
+          # (the file's path has copier syntax in it, so the test loads it by path).
+          uvx --with pytest --from pytest pytest -q tests/test_setup_repo.py
+          uvx copier copy --trust --defaults --vcs-ref=HEAD \
+            --data project_name="sample-repo-settings" \
+            --data project_description="A sample managing its repo settings" \
+            --data use_repo_settings=true \
+            . /tmp/out-repo-settings
+          # Apply script plus JSON payloads render intact, and the script keeps
+          # its executable bit.
+          test -x /tmp/out-repo-settings/scripts/setup_repo.py
+          python3 -m py_compile /tmp/out-repo-settings/scripts/setup_repo.py
+          /tmp/out-repo-settings/scripts/setup_repo.py --help > /dev/null
+          python3 -c "import json,sys; json.load(open(sys.argv[1]))" /tmp/out-repo-settings/.github/rulesets/main.json
+          python3 -c "import json,sys; json.load(open(sys.argv[1]))" /tmp/out-repo-settings/.github/repo-settings.json
+          grep -q 'ci / Lint, type-check, and test' /tmp/out-repo-settings/.github/rulesets/main.json
+          ! grep -q 'frontend /' /tmp/out-repo-settings/.github/rulesets/main.json
+          echo "repo settings opt-in honoured."
+
           # library-only files present for library, absent for app
           test -f /tmp/out-library/RELEASING.md
           test -f /tmp/out-library/.github/workflows/publish.yml
@@ -81,12 +107,16 @@ jobs:
             --data project_name="sample-frontend" \
             --data project_description="A sample with a frontend" \
             --data use_frontend=true \
+            --data use_repo_settings=true \
             . /tmp/out-frontend
           test -f /tmp/out-frontend/biome.json
           grep -q "biomejs/pre-commit" /tmp/out-frontend/.pre-commit-config.yaml
           grep -q "node-ci.yml" /tmp/out-frontend/.github/workflows/ci.yml
           python3 -c "import json; json.load(open('/tmp/out-frontend/biome.json'))"
           python3 -c "import yaml; yaml.safe_load(open('/tmp/out-frontend/.github/workflows/ci.yml'))"
+          # and its ruleset requires the frontend job too
+          python3 -c "import json,sys; json.load(open(sys.argv[1]))" /tmp/out-frontend/.github/rulesets/main.json
+          grep -q 'frontend / Type-check and build' /tmp/out-frontend/.github/rulesets/main.json
           # `recommended` is deprecated in Biome 2.5.5; `preset` is the spelling
           # that doesn't emit a notice.
           grep -q '"preset": "recommended"' /tmp/out-frontend/biome.json

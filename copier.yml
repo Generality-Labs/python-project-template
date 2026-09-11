@@ -16,6 +16,12 @@ _message_after_copy: |
     uv sync
     uv run pre-commit install
     git init && git add -A && git commit -m "Initial commit"
+  {% if use_repo_settings %}
+
+  Once the repo exists on GitHub, review and apply its settings and branch
+  ruleset (shows what would change first; edit .github/rulesets/*.json if needed):
+    scripts/setup_repo.py
+  {% endif %}
 
 project_name:
   type: str
@@ -89,6 +95,17 @@ use_template_update:
   # works by hand.
   help: Open a PR automatically when the template changes? (weekly `copier update`)
   default: true
+
+use_repo_settings:
+  type: bool
+  # Scaffolds .github/repo-settings.json, .github/rulesets/main.json and
+  # scripts/setup_repo.py, which apply repo settings and a protect-main
+  # ruleset through the GitHub API when someone runs the script. Off by
+  # default so `copier update --defaults` never drops the files (and the
+  # invitation to run them) into a downstream repo that didn't ask; a repo
+  # opts in by answering yes here or by editing .copier-answers.yml.
+  help: Manage GitHub repo settings and a protect-main ruleset from files in the repo? (adds scripts/setup_repo.py; nothing is applied until you run it)
+  default: false
 
 coverage_floor:
   type: int

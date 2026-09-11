@@ -31,8 +31,9 @@ uvx copier copy gh:Generality-Labs/python-project-template my-new-project
 
 You'll be asked for the name, description, whether it's an app or a library,
 Python version, whether to enable a coverage gate, whether the project has a
-TypeScript/JavaScript frontend, whether to run the typos spell-checker, and
-whether to open template-update PRs automatically.
+TypeScript/JavaScript frontend, whether to run the typos spell-checker, whether to
+open template-update PRs automatically, and whether to manage repo settings
+and a branch ruleset from files (off by default).
 
 ### Turning off `typos`
 
@@ -135,6 +136,59 @@ The template leaves them off: nursery rules are explicitly unstable and may
 change between releases. Turn them on per-project when you want them, and keep
 `tsc --noEmit` under `strict` as the backstop either way — Biome's inference is
 newer and less complete than a full type-checker's.
+
+## Repo settings as code
+
+GitHub keeps repository settings and rulesets in the UI and API rather than in
+files, so the scaffold can ship the files *and* the thing that applies them.
+This is **opt-in**: answer yes to `use_repo_settings` (default no). Nothing
+changes on GitHub until someone runs the script, but the default is off so a
+`copier update` never drops the files, or the invitation to run them, into a
+downstream repo that didn't ask. An existing project opts in by setting
+`use_repo_settings: true` in `.copier-answers.yml` and running `copier update`.
+
+- `.github/repo-settings.json` is sent verbatim as the body of
+  `PATCH /repos/{owner}/{repo}`, so any key [that endpoint
+  accepts](https://docs.github.com/rest/repos/repos#update-a-repository) can be
+  managed there: merge methods, `has_wiki` / `has_projects`, and notably
+  `delete_branch_on_merge: true` (stacked PRs only retarget when merged base
+  branches are deleted). If a key turns out to be plan-gated for a repo the
+  whole PATCH 403s; remove the key and re-run.
+- `.github/rulesets/*.json` are rulesets in the exact shape the GitHub UI
+  imports and exports (Settings -> Rules -> Rulesets), so they round-trip
+  through the dashboard.
+- `scripts/setup_repo.py` (standard library only; needs `gh` authenticated
+  as a repo admin) applies both. It first fetches what the repo has now and
+  prints the difference: settings keys whose value would change, and a unified
+  diff of each ruleset against GitHub's copy, projected onto the keys the file
+  sets so ids, timestamps and GitHub's filled-in defaults never show as
+  changes. Nothing is applied until you confirm; `--dry-run` only shows,
+  `--yes` skips the prompt (and is required when not run from a terminal).
+  Re-runs are safe: unchanged keys are skipped and rulesets are updated in
+  place by name, never duplicated.
+
+The scaffolded `protect-main` ruleset stops deletion and force-pushes of the
+default branch, requires changes to arrive by PR (0 approvals, so a solo
+maintainer isn't blocked), and requires the `ci / Lint, type-check, and test`
+check (plus `frontend / Type-check and build` when the project has a frontend).
+Repository **admins bypass it** (`actor_id: 5` is the built-in Admin role) so a
+release commit can still be pushed directly; tighten that as the team grows.
+A required check only takes effect once it has run at least once on the repo,
+so run CI before you rely on it.
+
+Plan gating: the rulesets API refuses private repos on the Free plan (403). The
+script applies the plain settings, says so, and exits 0; re-run it after the
+plan changes. Generality-Labs is on Team, so org repos are unaffected.
+
+This repo carries its own copies of both files and applies them with the
+scaffolded script, from the repo root:
+
+```bash
+python3 'template/{% if use_repo_settings %}scripts{% endif %}/setup_repo.py' Generality-Labs/python-project-template
+```
+
+The script is unit-tested against a stubbed `gh` in `tests/test_setup_repo.py`,
+which template CI runs.
 
 ## Keeping projects up to date
 

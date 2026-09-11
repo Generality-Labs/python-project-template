@@ -14,6 +14,22 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 ## [Unreleased]
 
+### Added
+
+- Repo settings as code, opt-in via `use_repo_settings` (default off, so
+  `copier update --defaults` leaves existing projects alone): the scaffold
+  ships `.github/repo-settings.json`
+  (the literal `PATCH /repos/{owner}/{repo}` body: merge methods,
+  `delete_branch_on_merge: true` so stacked PRs retarget, wiki/projects off)
+  and `.github/rulesets/main.json` (protect the default branch: PRs required,
+  no force-pushes or deletion, the `ci / Lint, type-check, and test` check
+  required, plus the frontend check when there is one; repository Admins
+  bypass), and `scripts/setup_repo.py`, which fetches the repo's current
+  settings and rulesets, prints what would change (a unified diff per ruleset,
+  projected onto the keys the file sets), and applies only after confirmation
+  or `--yes`; `--dry-run` only shows. The post-copy message points at it, and
+  this repo carries and applies its own copies.
+
 ### Changed
 
 - Rebranded for the Generality-Labs fork: `github_owner` now defaults to

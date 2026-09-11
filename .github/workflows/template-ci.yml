@@ -65,6 +65,9 @@ jobs:
             test ! -e "/tmp/out-$kind/.github/rulesets"
             test ! -e "/tmp/out-$kind/.github/repo-settings.json"
           done
+          # The applier is tested against a stubbed gh, here in the template repo
+          # (the file's path has copier syntax in it, so the test loads it by path).
+          uvx --with pytest --from pytest pytest -q tests/test_setup_repo.py
           uvx copier copy --trust --defaults --vcs-ref=HEAD \
             --data project_name="sample-repo-settings" \
             --data project_description="A sample managing its repo settings" \
@@ -72,8 +75,9 @@ jobs:
             . /tmp/out-repo-settings
           # Apply script plus JSON payloads render intact, and the script keeps
           # its executable bit.
-          test -x /tmp/out-repo-settings/scripts/setup-repo.sh
-          bash -n /tmp/out-repo-settings/scripts/setup-repo.sh
+          test -x /tmp/out-repo-settings/scripts/setup_repo.py
+          python3 -m py_compile /tmp/out-repo-settings/scripts/setup_repo.py
+          /tmp/out-repo-settings/scripts/setup_repo.py --help > /dev/null
           python3 -c "import json,sys; json.load(open(sys.argv[1]))" /tmp/out-repo-settings/.github/rulesets/main.json
           python3 -c "import json,sys; json.load(open(sys.argv[1]))" /tmp/out-repo-settings/.github/repo-settings.json
           grep -q 'ci / Lint, type-check, and test' /tmp/out-repo-settings/.github/rulesets/main.json

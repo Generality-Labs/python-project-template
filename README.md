@@ -157,9 +157,15 @@ downstream repo that didn't ask. An existing project opts in by setting
 - `.github/rulesets/*.json` are rulesets in the exact shape the GitHub UI
   imports and exports (Settings -> Rules -> Rulesets), so they round-trip
   through the dashboard.
-- `scripts/setup-repo.sh` applies both idempotently with your own `gh` auth
-  (repo admin needed): it PATCHes the settings file, then creates or
-  updates-in-place each ruleset by name.
+- `scripts/setup_repo.py` (standard library only; needs `gh` authenticated
+  as a repo admin) applies both. It first fetches what the repo has now and
+  prints the difference: settings keys whose value would change, and a unified
+  diff of each ruleset against GitHub's copy, projected onto the keys the file
+  sets so ids, timestamps and GitHub's filled-in defaults never show as
+  changes. Nothing is applied until you confirm; `--dry-run` only shows,
+  `--yes` skips the prompt (and is required when not run from a terminal).
+  Re-runs are safe: unchanged keys are skipped and rulesets are updated in
+  place by name, never duplicated.
 
 The scaffolded `protect-main` ruleset stops deletion and force-pushes of the
 default branch, requires changes to arrive by PR (0 approvals, so a solo
@@ -174,12 +180,15 @@ Plan gating: the rulesets API refuses private repos on the Free plan (403). The
 script applies the plain settings, says so, and exits 0; re-run it after the
 plan changes. Generality-Labs is on Team, so org repos are unaffected.
 
-This repo carries its own copies of both files and applies them the same way,
-from the repo root:
+This repo carries its own copies of both files and applies them with the
+scaffolded script, from the repo root:
 
 ```bash
-template/scripts/setup-repo.sh   # targets the 'origin' remote; pass OWNER/REPO to override
+python3 'template/{% if use_repo_settings %}scripts{% endif %}/setup_repo.py' Generality-Labs/python-project-template
 ```
+
+The script is unit-tested against a stubbed `gh` in `tests/test_setup_repo.py`,
+which template CI runs.
 
 ## Keeping projects up to date
 

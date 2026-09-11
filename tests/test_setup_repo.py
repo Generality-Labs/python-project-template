@@ -31,9 +31,7 @@ RULESET = {
     "target": "branch",
     "enforcement": "active",
     "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
-    "bypass_actors": [
-        {"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}
-    ],
+    "bypass_actors": [{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}],
     "rules": [
         {"type": "deletion"},
         {"type": "pull_request", "parameters": {"required_approving_review_count": 0}},
@@ -44,9 +42,7 @@ RULESET = {
 def as_github_returns(ruleset: dict, ruleset_id: int) -> dict:
     """GitHub's copy: same content plus ids, timestamps and defaults for unset parameters."""
     copy = json.loads(json.dumps(ruleset))
-    copy.update(
-        {"id": ruleset_id, "source": REPO, "created_at": "2026-01-01T00:00:00Z"}
-    )
+    copy.update({"id": ruleset_id, "source": REPO, "created_at": "2026-01-01T00:00:00Z"})
     for rule in copy["rules"]:
         if rule["type"] == "pull_request":
             rule["parameters"]["dismiss_stale_reviews_on_push"] = False
@@ -80,9 +76,7 @@ class FakeGh:
                 raise setup_repo.GhError(
                     "HTTP 403: Upgrade to GitHub Pro or make this repository public"
                 )
-            return json.dumps(
-                [{"id": r["id"], "name": r["name"]} for r in self.rulesets]
-            )
+            return json.dumps([{"id": r["id"], "name": r["name"]} for r in self.rulesets])
         if target.startswith(f"repos/{REPO}/rulesets/"):
             wanted = int(target.rsplit("/", 1)[1])
             return json.dumps(next(r for r in self.rulesets if r["id"] == wanted))
@@ -98,9 +92,7 @@ def repo_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return tmp_path
 
 
-def run(
-    gh: FakeGh, *argv: str, interactive: bool = False, answer: str = "n"
-) -> tuple[int, str]:
+def run(gh: FakeGh, *argv: str, interactive: bool = False, answer: str = "n") -> tuple[int, str]:
     lines: list[str] = []
     code = setup_repo.main(
         [*argv, REPO],

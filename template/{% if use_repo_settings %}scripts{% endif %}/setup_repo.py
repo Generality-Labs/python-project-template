@@ -59,9 +59,7 @@ class GhError(RuntimeError):
 
 def run_gh(args: Sequence[str], stdin: str | None = None) -> str:
     """Run ``gh`` with ``args`` and return stdout; raise :class:`GhError` on failure."""
-    result = subprocess.run(
-        ["gh", *args], input=stdin, capture_output=True, text=True, check=False
-    )
+    result = subprocess.run(["gh", *args], input=stdin, capture_output=True, text=True, check=False)
     if result.returncode != 0:
         raise GhError((result.stderr or result.stdout).strip())
     return result.stdout
@@ -77,9 +75,7 @@ def project(current: Json, want: Json) -> Json:
     if isinstance(want, dict) and isinstance(current, dict):
         want_map = cast(dict[str, Json], want)
         current_map = cast(dict[str, Json], current)
-        return {
-            k: project(v, want_map[k]) for k, v in current_map.items() if k in want_map
-        }
+        return {k: project(v, want_map[k]) for k, v in current_map.items() if k in want_map}
     if isinstance(want, list) and isinstance(current, list):
         want_list = cast(list[Json], want)
         current_list = cast(list[Json], current)
@@ -139,14 +135,10 @@ def resolve_repo(explicit: str | None, gh: Runner) -> str:
     view_args = ["repo", "view"]
     if origin.returncode == 0 and origin.stdout.strip():
         view_args.append(origin.stdout.strip())
-    return gh(
-        [*view_args, "--json", "nameWithOwner", "--jq", ".nameWithOwner"], None
-    ).strip()
+    return gh([*view_args, "--json", "nameWithOwner", "--jq", ".nameWithOwner"], None).strip()
 
 
-def plan_settings(
-    repo: str, gh: Runner, root: Path
-) -> tuple[list[SettingChange], bool]:
+def plan_settings(repo: str, gh: Runner, root: Path) -> tuple[list[SettingChange], bool]:
     path = root / SETTINGS_FILE
     if not path.exists():
         return [], False
@@ -180,9 +172,7 @@ def plan_rulesets(repo: str, gh: Runner, root: Path) -> tuple[list[RulesetPlan],
         existing_id = by_name.get(name)
         diff = ""
         if existing_id is not None:
-            current = json.loads(
-                gh(["api", f"repos/{repo}/rulesets/{existing_id}"], None)
-            )
+            current = json.loads(gh(["api", f"repos/{repo}/rulesets/{existing_id}"], None))
             diff = "".join(
                 difflib.unified_diff(
                     canonical(project(current, desired)).splitlines(keepends=True),
@@ -210,17 +200,13 @@ def describe(plan: Plan, out: Callable[[str], None]) -> None:
     else:
         out(f"  repo settings: {len(plan.settings)} change(s)")
         for change in plan.settings:
-            out(
-                f"    {change.key}: {json.dumps(change.current)} -> {json.dumps(change.desired)}"
-            )
+            out(f"    {change.key}: {json.dumps(change.current)} -> {json.dumps(change.desired)}")
     if plan.rulesets_gated:
         out("  note: the rulesets API refuses private repos on this GitHub plan")
         out(f"        (needs Pro/Team+); {RULESETS_DIR}/*.json skipped")
     for rs in plan.rulesets:
         if rs.existing_id is None:
-            out(
-                f"  ruleset '{rs.name}': does not exist yet; would be created from {rs.path}"
-            )
+            out(f"  ruleset '{rs.name}': does not exist yet; would be created from {rs.path}")
         elif rs.diff:
             out(f"  ruleset '{rs.name}' (id {rs.existing_id}): would be updated")
             for line in rs.diff.rstrip("\n").splitlines():
@@ -322,9 +308,7 @@ def main(
         if interactive is None:
             interactive = sys.stdin.isatty()
         if not interactive:
-            out(
-                "Not a terminal and --yes not given; nothing applied. Re-run with --yes to apply."
-            )
+            out("Not a terminal and --yes not given; nothing applied. Re-run with --yes to apply.")
             return 2
         if ask(f"Apply these changes to {repo}? [y/N] ").strip().lower() not in (
             "y",

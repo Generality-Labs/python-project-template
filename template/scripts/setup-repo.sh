@@ -18,8 +18,9 @@
 # GitHub Pro..."). The script applies the plain settings, says so, and exits 0
 # so it can sit in a setup checklist without failing it.
 #
-# Usage (against the repo of the current checkout):
-#   scripts/setup-repo.sh
+# Usage:
+#   scripts/setup-repo.sh              # the repo behind the 'origin' remote
+#   scripts/setup-repo.sh OWNER/REPO   # an explicit target
 set -euo pipefail
 
 command -v jq > /dev/null || {
@@ -31,7 +32,16 @@ gh auth status > /dev/null 2>&1 || {
   exit 1
 }
 
-repo="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
+# Resolve the target from 'origin' rather than gh's default-repo guess, which
+# on a checkout with several remotes (a fork plus the org repo) can pick the
+# wrong one and quietly reconfigure it.
+if [[ $# -gt 0 ]]; then
+  repo="$1"
+elif origin_url="$(git remote get-url origin 2> /dev/null)"; then
+  repo="$(gh repo view "$origin_url" --json nameWithOwner --jq .nameWithOwner)"
+else
+  repo="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
+fi
 echo "== GitHub settings for $repo =="
 
 SETTINGS_FILE=".github/repo-settings.json"

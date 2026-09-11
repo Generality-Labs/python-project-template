@@ -172,7 +172,7 @@ This repo carries its own copies of both files and applies them the same way,
 from the repo root:
 
 ```bash
-template/scripts/setup-repo.sh
+template/scripts/setup-repo.sh   # targets the 'origin' remote; pass OWNER/REPO to override
 ```
 
 ## Keeping projects up to date

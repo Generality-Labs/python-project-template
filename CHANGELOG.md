@@ -14,6 +14,18 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 ## [Unreleased]
 
+### Added
+
+- Repo settings as code: the scaffold ships `.github/repo-settings.json`
+  (the literal `PATCH /repos/{owner}/{repo}` body: merge methods,
+  `delete_branch_on_merge: true` so stacked PRs retarget, wiki/projects off)
+  and `.github/rulesets/main.json` (protect the default branch: PRs required,
+  no force-pushes or deletion, the `ci / Lint, type-check, and test` check
+  required, plus the frontend check when there is one; repository Admins
+  bypass), and `scripts/setup-repo.sh`, which idempotently PATCHes the settings
+  and creates or updates each ruleset by name. The post-copy message points at
+  it, and this repo carries and applies its own copies.
+
 ### Changed
 
 - Rebranded for the Generality-Labs fork: `github_owner` now defaults to

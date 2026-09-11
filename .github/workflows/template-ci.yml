@@ -58,6 +58,17 @@ jobs:
             # raising default_language_version is the regression to catch.
             python3 -c "import sys,yaml; cfg=yaml.safe_load(open(sys.argv[1])); hs=[h for r in cfg['repos'] if 'shellcheck-py' in r['repo'] for h in r['hooks'] if h['id']=='shellcheck']; assert len(hs)==1, hs; v=hs[0].get('language_version'); assert v=='python3.12', f'shellcheck language_version is {v!r}'" "/tmp/out-$kind/.pre-commit-config.yaml"
           done
+          # Repo settings as code: apply script plus JSON payloads render intact,
+          # and the script keeps its executable bit.
+          for kind in app library; do
+            test -x "/tmp/out-$kind/scripts/setup-repo.sh"
+            bash -n "/tmp/out-$kind/scripts/setup-repo.sh"
+            python3 -c "import json,sys; json.load(open(sys.argv[1]))" "/tmp/out-$kind/.github/rulesets/main.json"
+            python3 -c "import json,sys; json.load(open(sys.argv[1]))" "/tmp/out-$kind/.github/repo-settings.json"
+          done
+          grep -q 'ci / Lint, type-check, and test' /tmp/out-app/.github/rulesets/main.json
+          ! grep -q 'frontend /' /tmp/out-app/.github/rulesets/main.json
+
           # library-only files present for library, absent for app
           test -f /tmp/out-library/RELEASING.md
           test -f /tmp/out-library/.github/workflows/publish.yml
@@ -87,6 +98,9 @@ jobs:
           grep -q "node-ci.yml" /tmp/out-frontend/.github/workflows/ci.yml
           python3 -c "import json; json.load(open('/tmp/out-frontend/biome.json'))"
           python3 -c "import yaml; yaml.safe_load(open('/tmp/out-frontend/.github/workflows/ci.yml'))"
+          # and its ruleset requires the frontend job too
+          python3 -c "import json,sys; json.load(open(sys.argv[1]))" /tmp/out-frontend/.github/rulesets/main.json
+          grep -q 'frontend / Type-check and build' /tmp/out-frontend/.github/rulesets/main.json
           # `recommended` is deprecated in Biome 2.5.5; `preset` is the spelling
           # that doesn't emit a notice.
           grep -q '"preset": "recommended"' /tmp/out-frontend/biome.json

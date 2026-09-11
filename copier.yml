@@ -17,6 +17,10 @@ _message_after_copy: |
     uv run pre-commit install
     git init && git add -A && git commit -m "Initial commit"
 
+  Once the repo exists on GitHub, apply its settings and branch ruleset
+  (idempotent; edit .github/rulesets/*.json first if needed):
+    scripts/setup-repo.sh
+
 project_name:
   type: str
   help: Project / repo name in kebab-case, e.g. "my-tool"

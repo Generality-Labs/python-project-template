@@ -136,6 +136,45 @@ change between releases. Turn them on per-project when you want them, and keep
 `tsc --noEmit` under `strict` as the backstop either way — Biome's inference is
 newer and less complete than a full type-checker's.
 
+## Repo settings as code
+
+GitHub keeps repository settings and rulesets in the UI and API rather than in
+files, so the scaffold ships the files *and* the thing that applies them:
+
+- `.github/repo-settings.json` is sent verbatim as the body of
+  `PATCH /repos/{owner}/{repo}`, so any key [that endpoint
+  accepts](https://docs.github.com/rest/repos/repos#update-a-repository) can be
+  managed there: merge methods, `has_wiki` / `has_projects`, and notably
+  `delete_branch_on_merge: true` (stacked PRs only retarget when merged base
+  branches are deleted). If a key turns out to be plan-gated for a repo the
+  whole PATCH 403s; remove the key and re-run.
+- `.github/rulesets/*.json` are rulesets in the exact shape the GitHub UI
+  imports and exports (Settings -> Rules -> Rulesets), so they round-trip
+  through the dashboard.
+- `scripts/setup-repo.sh` applies both idempotently with your own `gh` auth
+  (repo admin needed): it PATCHes the settings file, then creates or
+  updates-in-place each ruleset by name.
+
+The scaffolded `protect-main` ruleset stops deletion and force-pushes of the
+default branch, requires changes to arrive by PR (0 approvals, so a solo
+maintainer isn't blocked), and requires the `ci / Lint, type-check, and test`
+check (plus `frontend / Type-check and build` when the project has a frontend).
+Repository **admins bypass it** (`actor_id: 5` is the built-in Admin role) so a
+release commit can still be pushed directly; tighten that as the team grows.
+A required check only takes effect once it has run at least once on the repo,
+so run CI before you rely on it.
+
+Plan gating: the rulesets API refuses private repos on the Free plan (403). The
+script applies the plain settings, says so, and exits 0; re-run it after the
+plan changes. Generality-Labs is on Team, so org repos are unaffected.
+
+This repo carries its own copies of both files and applies them the same way,
+from the repo root:
+
+```bash
+template/scripts/setup-repo.sh
+```
+
 ## Keeping projects up to date
 
 Answer yes to `use_template_update` (the default) and the scaffold gets a

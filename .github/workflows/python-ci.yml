@@ -29,6 +29,15 @@ on:
           Mirrors the same input on node-ci.yml.
         type: string
         default: "."
+      lfs:
+        description: >
+          Fetch Git LFS objects during checkout. Off by default: LFS pulls cost
+          bandwidth against the account quota on every run. Turn it on for a
+          repo whose tests read LFS-tracked fixtures — without it they get the
+          pointer files, and fail with whatever the reading library says about
+          malformed input rather than anything about LFS.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -43,11 +52,12 @@ jobs:
       run:
         working-directory: ${{ inputs.working-directory }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          lfs: ${{ inputs.lfs }}
 
-      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: ${{ inputs.python-version }}
 

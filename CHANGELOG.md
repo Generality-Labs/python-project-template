@@ -16,6 +16,7 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 ### Added
 
+- `python-ci.yml` and `node-ci.yml` take an `lfs` input, passed through to `actions/checkout`. It defaults to `false`, because an LFS pull costs bandwidth against the account quota on every run and most projects have nothing in LFS. Turn it on for a repo whose tests read LFS-tracked fixtures: without it the checkout produces pointer files, and the failure surfaces as whatever the reading library says about malformed input — `FzErrorFormat: no objects found` from PyMuPDF, in the case that prompted this — with nothing anywhere in the output mentioning LFS.
 - Repo settings as code, opt-in via `use_repo_settings` (default off, so
   `copier update --defaults` leaves existing projects alone): the scaffold
   ships `.github/repo-settings.json`

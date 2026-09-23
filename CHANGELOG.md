@@ -17,6 +17,26 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 ### Added
 
 - `python-ci.yml` and `node-ci.yml` take an `lfs` input, passed through to `actions/checkout`. It defaults to `false`, because an LFS pull costs bandwidth against the account quota on every run and most projects have nothing in LFS. Turn it on for a repo whose tests read LFS-tracked fixtures: without it the checkout produces pointer files, and the failure surfaces as whatever the reading library says about malformed input — `FzErrorFormat: no objects found` from PyMuPDF, in the case that prompted this — with nothing anywhere in the output mentioning LFS.
+- Repo settings as code, opt-in via `use_repo_settings` (default off, so
+  `copier update --defaults` leaves existing projects alone): the scaffold
+  ships `.github/repo-settings.json`
+  (the literal `PATCH /repos/{owner}/{repo}` body: merge methods,
+  `delete_branch_on_merge: true` so stacked PRs retarget, wiki/projects off)
+  and `.github/rulesets/main.json` (protect the default branch: PRs required,
+  no force-pushes or deletion, the `ci / Lint, type-check, and test` check
+  required, plus the frontend check when there is one; repository Admins
+  bypass), and `scripts/setup_repo.py`, which fetches the repo's current
+  settings and rulesets, prints what would change (a unified diff per ruleset,
+  projected onto the keys the file sets), and applies only after confirmation
+  or `--yes`; `--dry-run` only shows. The post-copy message points at it, and
+  this repo carries and applies its own copies.
+
+### Changed
+
+- Rebranded for the Generality-Labs fork: `github_owner` now defaults to
+  `Generality-Labs`, so scaffolded projects call the reusable workflows and
+  pin their zizmor/Dependabot exceptions against this repo. README, LICENSE
+  and workflow header comments updated to match.
 
 ### Fixed
 
@@ -186,4 +206,4 @@ The largest release so far: an optional TypeScript side, automated template upda
 [1.7.0]: https://github.com/MattFisher/python-project-template/compare/v1.6.0...v1.7.0
 [1.8.0]: https://github.com/MattFisher/python-project-template/compare/v1.7.0...v1.8.0
 [1.8.1]: https://github.com/MattFisher/python-project-template/compare/v1.8.0...v1.8.1
-[unreleased]: https://github.com/MattFisher/python-project-template/compare/v1.8.1...HEAD
+[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.8.1...HEAD

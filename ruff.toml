@@ -1,0 +1,43 @@
+# Ruff settings for this repo's own Python: the scaffolded scripts under
+# template/ and the tests that exercise them. Mirrors the [tool.ruff] block in
+# template/pyproject.toml.jinja so a file formats identically here and in a
+# scaffolded project. Without this, pre-commit in the smoke-test job formats
+# these files with ruff's defaults (line length 88) and disagrees with the
+# scaffold's 100.
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "SIM",   # flake8-simplify
+    "D",     # pydocstyle
+    "C4",    # flake8-comprehensions
+    "PT",    # flake8-pytest-style
+    "PIE",   # flake8-pie
+    "DTZ",   # flake8-datetimez (timezone-aware datetimes)
+    "ISC",   # implicit-str-concat (catches missing commas)
+    "ASYNC", # flake8-async
+    "N",     # pep8-naming
+    "FURB",  # refurb (modernization)
+    "RUF",   # ruff-specific rules
+    "PLE",   # pylint errors
+    "PLW",   # pylint warnings
+]
+ignore = [
+    "E501",   # line-too-long: the formatter owns line length
+    "D10",    # missing docstrings
+    "D415",   # first-line punctuation
+    "ISC001", # single-line implicit concat conflicts with the formatter
+]
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.per-file-ignores]
+"tests/**" = ["D"]

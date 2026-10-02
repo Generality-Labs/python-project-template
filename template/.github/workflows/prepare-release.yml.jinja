@@ -7,6 +7,11 @@
 #
 # One-time setup: Settings > Actions > General > "Allow GitHub Actions to
 # create and approve pull requests" must be on, or opening the PR fails.
+#
+# CI on the release pull request waits for approval: a pull request opened
+# with the default Actions token starts its workflows in an approval-required
+# state. Open the pull request's Checks tab and click "Approve workflows to
+# run". A re-run of this workflow after a failure is safe.
 
 on:
   workflow_dispatch:
@@ -34,14 +39,21 @@ concurrency:
 jobs:
   prepare:
     name: Open the release pull request
-    # Releases are cut from the default branch only.
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
     permissions:
       contents: write # push the release branch
       pull-requests: write # open the release pull request
-      actions: write # start CI on the release branch
     steps:
+      - name: Refuse a run from another branch
+        env:
+          REF: ${{ github.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ "$REF" != "refs/heads/${DEFAULT_BRANCH}" ]; then
+            echo "::error::run Prepare release from ${DEFAULT_BRANCH}, not ${REF}" >&2
+            exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -69,7 +81,10 @@ jobs:
           sections = set()
           for path in fragments:
               text = re.sub(r"<!--.*?-->", "", path.read_text(encoding="utf-8"), flags=re.S)
-              sections |= {m.strip() for m in re.findall(r"^### (.+)$", text, flags=re.M)}
+              found = {m.strip() for m in re.findall(r"^### (.+)$", text, flags=re.M)}
+              if text.strip() and not found:
+                  sys.exit(f"::error::{path} has entries but no ### category heading.")
+              sections |= found
           if not sections:
               sys.exit("::error::changelog.d/ has no fragments with entries, so there is nothing to release.")
 
@@ -104,26 +119,35 @@ jobs:
         run: |
           set -euo pipefail
           branch="release/v${VERSION}"
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v${VERSION}" >/dev/null 2>&1; then
+            echo "::error::tag v${VERSION} already exists; bump further, or delete the tag if it is stale" >&2
+            exit 1
+          fi
+          open_prs=$(gh pr list --head "$branch" --state open --json number --jq length)
+          if [ "$open_prs" != "0" ]; then
+            echo "::error::a release pull request from ${branch} is already open" >&2
+            exit 1
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
           git add pyproject.toml uv.lock CHANGELOG.md changelog.d
           git commit -m "Release v${VERSION}"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${branch}"
+          # --force: a run that failed after pushing (for example, before the
+          # Actions setting was on) leaves this branch behind with no PR.
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${branch}"
 
           awk -v v="$VERSION" '
             index($0, "## [" v "]") == 1 { found = 1; next }
             found && /^## / { exit }
-            found { print }
+            found && (started || NF) { started = 1; print }
           ' CHANGELOG.md > notes.md
           {
             echo "Merging this pull request tags v${VERSION} and creates its GitHub release."
             echo
+            echo "CI waits for approval: open the Checks tab and click **Approve workflows to run**."
+            echo
             cat notes.md
           } > body.md
           gh pr create --base "$BASE" --head "$branch" --title "Release v${VERSION}" --body-file body.md
-
-          # A pull request opened with the default token starts no workflows,
-          # so start CI on the branch; its checks count for the pull request.
-          gh workflow run ci.yml --ref "$branch"
 {% endraw %}

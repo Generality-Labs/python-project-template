@@ -24,30 +24,14 @@ Repairs 1.9.0, which was tagged before `CHANGELOG.md` had a `[1.9.0]` section. `
 
 - Scaffolded projects keep their changelog as [scriv](https://scriv.readthedocs.io/) fragments: each PR adds a file under `changelog.d/` (`uv run scriv create`) instead of editing `CHANGELOG.md`, and `uv run scriv collect` writes them into `CHANGELOG.md` at release time. Two PRs that both edited `## [Unreleased]` conflicted on every merge; fragments are separate files, so they never do. The scaffold gains `[tool.scriv]` in `pyproject.toml` (Keep a Changelog categories, `## [X.Y.Z] - YYYY-MM-DD` headings, the version read from `__init__.py` for libraries or `pyproject.toml` for apps), `scriv` in the dev group, `changelog.d/TEMPLATE.md`, and a `<!-- scriv-insert-here -->` marker in place of `## [Unreleased]`. `RELEASING.md` and the README say how to use them.
 - `CHANGELOG.md` is listed in `_skip_if_exists`, so `copier update` leaves an existing changelog alone. It does create one if the file is missing, so a project that keeps its changelog elsewhere gets a new `CHANGELOG.md` proposed on each update.
-- **Upgrading an existing project:** `copier update` brings in the config and `changelog.d/TEMPLATE.md` but not the marker. By hand:
-  - Replace the `## [Unreleased]` heading in `CHANGELOG.md` with `<!-- scriv-insert-here -->`, and move any unreleased entries into a fragment under `changelog.d/`. Skipping this makes `scriv collect` fail with `Entry 'Changelog' is not a valid version!`; its hint about `scriv-end-here` is not the fix.
-  - Check that `[tool.scriv] version` reads the file your build backend reads. Libraries get `src/<pkg>/__init__.py`, which is right for the template's hatchling setup. A project that moved to a static `version` in `pyproject.toml` (for example, uv_build) needs `literal: pyproject.toml: project.version`, or collect writes a stale version.
+- **Upgrading an existing project:** `copier update` brings in the config and `changelog.d/TEMPLATE.md` but not the marker. By hand: - Replace the `## [Unreleased]` heading in `CHANGELOG.md` with `<!-- scriv-insert-here -->`, and move any unreleased entries into a fragment under `changelog.d/`. Skipping this makes `scriv collect` fail with `Entry 'Changelog' is not a valid version!`; its hint about `scriv-end-here` is not the fix. - Check that `[tool.scriv] version` reads the file your build backend reads. Libraries get `src/<pkg>/__init__.py`, which is right for the template's hatchling setup. A project that moved to a static `version` in `pyproject.toml` (for example, uv_build) needs `literal: pyproject.toml: project.version`, or collect writes a stale version.
 - `python-ci.yml` and `node-ci.yml` take an `lfs` input, passed through to `actions/checkout`. It defaults to `false`, because an LFS pull costs bandwidth against the account quota on every run and most projects have nothing in LFS. Turn it on for a repo whose tests read LFS-tracked fixtures: without it the checkout produces pointer files, and the failure surfaces as whatever the reading library says about malformed input — `FzErrorFormat: no objects found` from PyMuPDF, in the case that prompted this — with nothing anywhere in the output mentioning LFS.
-- Repo settings as code, opt-in via `use_repo_settings` (default off, so
-  `copier update --defaults` leaves existing projects alone): the scaffold
-  ships `.github/repo-settings.json`
-  (the literal `PATCH /repos/{owner}/{repo}` body: merge methods,
-  `delete_branch_on_merge: true` so stacked PRs retarget, wiki/projects off)
-  and `.github/rulesets/main.json` (protect the default branch: PRs required,
-  no force-pushes or deletion, the `ci / Lint, type-check, and test` check
-  required, plus the frontend check when there is one; repository Admins
-  bypass), and `scripts/setup_repo.py`, which fetches the repo's current
-  settings and rulesets, prints what would change (a unified diff per ruleset,
-  projected onto the keys the file sets), and applies only after confirmation
-  or `--yes`; `--dry-run` only shows. The post-copy message points at it, and
-  this repo carries and applies its own copies.
+- Repo settings as code, opt-in via `use_repo_settings` (default off, so `copier update --defaults` leaves existing projects alone): the scaffold ships `.github/repo-settings.json` (the literal `PATCH /repos/{owner}/{repo}` body: merge methods, `delete_branch_on_merge: true` so stacked PRs retarget, wiki/projects off) and `.github/rulesets/main.json` (protect the default branch: PRs required, no force-pushes or deletion, the `ci / Lint, type-check, and test` check required, plus the frontend check when there is one; repository Admins bypass), and `scripts/setup_repo.py`, which fetches the repo's current settings and rulesets, prints what would change (a unified diff per ruleset, projected onto the keys the file sets), and applies only after confirmation or `--yes`; `--dry-run` only shows. The post-copy message points at it, and this repo carries and applies its own copies.
 
 ### Changed
 
-- Rebranded for the Generality-Labs fork: `github_owner` now defaults to
-  `Generality-Labs`, so scaffolded projects call the reusable workflows and
-  pin their zizmor/Dependabot exceptions against this repo. README, LICENSE
-  and workflow header comments updated to match.
+- The reusable workflows move to new major versions of two actions: `python-ci.yml` uses `astral-sh/setup-uv` v10 (was v8.3.2), and `node-ci.yml` uses `actions/setup-node` v7 (was v6.5.0). Both also take `actions/checkout` 7.0.1. These reach every `@v1` consumer as soon as `v1` moves, with no `copier update`.
+- Rebranded for the Generality-Labs fork: `github_owner` now defaults to `Generality-Labs`, so scaffolded projects call the reusable workflows and pin their zizmor/Dependabot exceptions against this repo. README, LICENSE and workflow header comments updated to match.
 
 ### Fixed
 
@@ -217,4 +201,6 @@ The largest release so far: an optional TypeScript side, automated template upda
 [1.7.0]: https://github.com/MattFisher/python-project-template/compare/v1.6.0...v1.7.0
 [1.8.0]: https://github.com/MattFisher/python-project-template/compare/v1.7.0...v1.8.0
 [1.8.1]: https://github.com/MattFisher/python-project-template/compare/v1.8.0...v1.8.1
-[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.8.1...HEAD
+[1.9.0]: https://github.com/Generality-Labs/python-project-template/compare/v1.8.1...v1.9.0
+[1.9.1]: https://github.com/Generality-Labs/python-project-template/compare/v1.9.0...v1.9.1
+[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.9.1...HEAD

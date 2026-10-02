@@ -14,6 +14,12 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-10-02
+
+Repairs 1.9.0, which was tagged before `CHANGELOG.md` had a `[1.9.0]` section. `bump-v1.yml` refuses a release it can't find described, so it left `v1` on 1.8.1 and the 1.9.0 tag lightweight. Consumers land on 1.9.1 rather than 1.9.0; the contents are the same bar this changelog.
+
+## [1.9.0] - 2026-10-02
+
 ### Added
 
 - Scaffolded projects keep their changelog as [scriv](https://scriv.readthedocs.io/) fragments: each PR adds a file under `changelog.d/` (`uv run scriv create`) instead of editing `CHANGELOG.md`, and `uv run scriv collect` writes them into `CHANGELOG.md` at release time. Two PRs that both edited `## [Unreleased]` conflicted on every merge; fragments are separate files, so they never do. The scaffold gains `[tool.scriv]` in `pyproject.toml` (Keep a Changelog categories, `## [X.Y.Z] - YYYY-MM-DD` headings, the version read from `__init__.py` for libraries or `pyproject.toml` for apps), `scriv` in the dev group, `changelog.d/TEMPLATE.md`, and a `<!-- scriv-insert-here -->` marker in place of `## [Unreleased]`. `RELEASING.md` and the README say how to use them.

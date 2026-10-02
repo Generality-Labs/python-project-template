@@ -1,0 +1,129 @@
+{% raw %}name: Prepare release
+
+# Run this from the Actions tab to cut a release. It bumps the version in
+# pyproject.toml, collects the changelog.d/ fragments into CHANGELOG.md, and
+# opens a "Release vX.Y.Z" pull request. Merging that PR tags the release (see
+# release-on-merge.yml).
+#
+# One-time setup: Settings > Actions > General > "Allow GitHub Actions to
+# create and approve pull requests" must be on, or opening the PR fails.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: >-
+          Version bump. auto picks minor when a fragment adds, changes,
+          deprecates or removes something, and patch when fragments only fix.
+          auto never picks major.
+        type: choice
+        default: auto
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Open the release pull request
+    # Releases are cut from the default branch only.
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the release branch
+      pull-requests: write # open the release pull request
+      actions: write # start CI on the release branch
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "{% endraw %}{{ python_version }}{% raw %}"
+          enable-cache: false # no caching in a job that can push (cache-poisoning surface)
+
+      - name: Choose the version bump
+        id: bump
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          fragments = [
+              p for p in sorted(Path("changelog.d").glob("*.md"))
+              if not p.name[0].isupper()  # TEMPLATE.md, README.md
+          ]
+          sections = set()
+          for path in fragments:
+              text = re.sub(r"<!--.*?-->", "", path.read_text(encoding="utf-8"), flags=re.S)
+              sections |= {m.strip() for m in re.findall(r"^### (.+)$", text, flags=re.M)}
+          if not sections:
+              sys.exit("::error::changelog.d/ has no fragments with entries, so there is nothing to release.")
+
+          bump = os.environ["BUMP"]
+          if bump == "auto":
+              minor = {"Added", "Changed", "Deprecated", "Removed"}
+              bump = "minor" if sections & minor else "patch"
+          print(f"Sections: {', '.join(sorted(sections))}. Bump: {bump}.")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"bump={bump}\n")
+          PY
+
+      - name: Bump the version and collect the changelog
+        id: version
+        env:
+          BUMP: ${{ steps.bump.outputs.bump }}
+        run: |
+          set -euo pipefail
+          uv version --bump "$BUMP"
+          uv run --group dev scriv collect
+          # A first mdformat pass may tidy the collected section; the second
+          # must then pass.
+          uv run --group dev pre-commit run mdformat --files CHANGELOG.md \
+            || uv run --group dev pre-commit run mdformat --files CHANGELOG.md
+          echo "version=$(uv version --short)" >> "$GITHUB_OUTPUT"
+
+      - name: Push the release branch and open the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          branch="release/v${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add pyproject.toml uv.lock CHANGELOG.md changelog.d
+          git commit -m "Release v${VERSION}"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${branch}"
+
+          awk -v v="$VERSION" '
+            index($0, "## [" v "]") == 1 { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          {
+            echo "Merging this pull request tags v${VERSION} and creates its GitHub release."
+            echo
+            cat notes.md
+          } > body.md
+          gh pr create --base "$BASE" --head "$branch" --title "Release v${VERSION}" --body-file body.md
+
+          # A pull request opened with the default token starts no workflows,
+          # so start CI on the branch; its checks count for the pull request.
+          gh workflow run ci.yml --ref "$branch"
+{% endraw %}

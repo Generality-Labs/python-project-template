@@ -7,6 +7,23 @@ _min_copier_version: "9.0.0"
 _skip_if_exists:
   - CHANGELOG.md
 
+# 1.10.0 moves a library's version from __init__.py to a static
+# [project] version, and the template's value is 0.1.0. A plain 3-way merge
+# applies that cleanly, silently resetting a released project to 0.1.0. After
+# updating across 1.10.0, put back the version the project had: copier only
+# updates a clean tree, so HEAD still holds the old __init__.py.
+_migrations:
+  - version: v1.10.0
+    when: "{{ _stage == 'after' and project_kind == 'library' }}"
+    command: >-
+      python3 -c "import re, subprocess, pathlib;
+      old = subprocess.run(['git', 'show', 'HEAD:src/{{ package_name }}/__init__.py'], capture_output=True, text=True).stdout;
+      m = re.search(r'^__version__ = [\x22\x27]([^\x22\x27]+)[\x22\x27]', old, re.M);
+      p = pathlib.Path('pyproject.toml'); s = p.read_text();
+      new = re.sub(r'^version = \x220\.1\.0\x22$', 'version = \x22' + m.group(1) + '\x22', s, count=1, flags=re.M) if m else s;
+      p.write_text(new);
+      print('restored version ' + m.group(1) if m and new != s else 'version left as is')"
+
 # Trim block-tag newlines so conditionals don't leave stray blank lines in
 # rendered text/markdown (keeps mdformat happy on a fresh scaffold).
 _envops:

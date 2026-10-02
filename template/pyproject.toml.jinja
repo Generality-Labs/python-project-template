@@ -13,6 +13,9 @@ version = "0.1.0"
 description = "{{ project_description }}"
 readme = "README.md"
 license = "{{ 'LicenseRef-Proprietary' if license == 'Proprietary' else license }}"
+{% if license == "MIT" %}
+license-files = ["LICENSE"] # uv_build ships only the license files named here
+{% endif %}
 authors = [{ name = "{{ author_name }}", email = "{{ author_email }}" }]
 requires-python = ">={{ python_version }}"
 dependencies = []

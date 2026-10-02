@@ -1,6 +1,12 @@
 _subdirectory: template
 _min_copier_version: "9.0.0"
 
+# A project's changelog is its own once scaffolded. Without this, every
+# `copier update` that touched CHANGELOG.md.jinja would 3-way merge the
+# template's few lines into a long project history and conflict.
+_skip_if_exists:
+  - CHANGELOG.md
+
 # Trim block-tag newlines so conditionals don't leave stray blank lines in
 # rendered text/markdown (keeps mdformat happy on a fresh scaffold).
 _envops:

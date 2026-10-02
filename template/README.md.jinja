@@ -11,6 +11,8 @@ uv run pytest
 uv run basedpyright src
 ```
 
+Each pull request adds a changelog fragment rather than editing `CHANGELOG.md`, so concurrent PRs don't conflict. Run `uv run scriv create`, uncomment the sections that apply in the new file under `changelog.d/`, and commit it with the change. Fragments are collected into `CHANGELOG.md` at release time.
+
 Linting (ruff, [zizmor](https://docs.zizmor.sh/), mdformat) runs via [pre-commit](https://pre-commit.com); CI runs the same stack plus basedpyright and pytest via the shared [`python-ci`](https://github.com/{{ github_owner }}/python-project-template) reusable workflow.
 {% if publish_to_pypi %}
 

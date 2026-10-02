@@ -91,6 +91,22 @@ jobs:
           test ! -e /tmp/out-app/.github/workflows/publish.yml
           echo "Both variants rendered and validated."
 
+          for kind in app library; do
+            out="/tmp/out-$kind"
+            test -f "$out/changelog.d/TEMPLATE.md"
+            grep -q '<!-- scriv-insert-here -->' "$out/CHANGELOG.md"
+            ! grep -q '## \[Unreleased\]' "$out/CHANGELOG.md" || exit 1
+            printf '### Added\n\n- Smoke one.\n' > "$out/changelog.d/smoke1.md"
+            printf '### Added\n\n- Smoke two.\n' > "$out/changelog.d/smoke2.md"
+            (cd "$out" && uvx --from 'scriv>=1.8' scriv collect)
+            grep -q '^## \[0\.1\.0\] - ' "$out/CHANGELOG.md"
+            # two fragments in one category must collect into one tight list
+            grep -A1 '^- Smoke one\.$' "$out/CHANGELOG.md" | grep -q '^- Smoke two\.$'
+            test ! -e "$out/changelog.d/smoke1.md"
+            test -f "$out/changelog.d/TEMPLATE.md"
+          done
+          echo "scriv collects fragments into CHANGELOG.md in both variants."
+
           # use_typos defaults on, and answering no drops the hook
           uvx copier copy --trust --defaults --vcs-ref=HEAD \
             --data project_name="sample-no-typos" \

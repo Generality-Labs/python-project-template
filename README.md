@@ -15,8 +15,10 @@ standard so the repos don't drift:
 - Optional TypeScript/JavaScript side: **Biome** (lint + format) in the
   pre-commit stack, plus a shared **`node-ci`** workflow for type-check and
   build
-- **Keep a Changelog** `CHANGELOG.md`; libraries also get PyPI trusted
-  publishing (`publish.yml` + `RELEASING.md`)
+- **Keep a Changelog** `CHANGELOG.md`, written from per-PR fragments in
+  `changelog.d/` by [scriv](https://scriv.readthedocs.io/), so concurrent PRs
+  never conflict on it; libraries also get PyPI trusted publishing
+  (`publish.yml` + `RELEASING.md`)
 - A Claude Code `SessionStart` hook that pre-warms the toolchain. With a
   frontend it also points corepack at `registry.npmjs.org`, since some sandbox
   egress proxies block `repo.yarnpkg.com` and corepack then fails before Yarn or

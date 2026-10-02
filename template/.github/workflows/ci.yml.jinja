@@ -5,6 +5,10 @@ on:
     branches:
       - main
   pull_request:
+  # The Prepare release workflow starts CI on its release branch this way: a
+  # pull request opened with the default Actions token triggers no workflows,
+  # so its required checks would otherwise never report.
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -54,6 +54,9 @@ new_fragment_template = "file: TEMPLATE.md"
 {% raw %}entry_title_template = "[{{ version }}] - {{ date.strftime('%Y-%m-%d') }}"{% endraw +%}
 md_header_level = "2"
 md_html_anchors = false
+# Without this, two fragments in one category leave a blank line between them,
+# which makes the list loose and fails mdformat on the release commit.
+compact_fragments = true
 {% if project_kind == "library" %}
 version = "literal: src/{{ package_name }}/__init__.py: __version__"
 {% else %}

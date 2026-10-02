@@ -42,6 +42,7 @@ packages = ["src/{{ package_name }}"]
 [tool.uv]
 package = false
 {% endif %}
+
 [tool.scriv]
 # One fragment per pull request in changelog.d/, collected into CHANGELOG.md
 # at release time, so concurrent PRs never edit the same lines of the changelog.
@@ -50,9 +51,7 @@ fragment_directory = "changelog.d"
 categories = ["Added", "Changed", "Deprecated", "Removed", "Fixed", "Security"]
 skip_fragments = "[A-Z]*" # TEMPLATE.md
 new_fragment_template = "file: TEMPLATE.md"
-{% raw %}
-entry_title_template = "[{{ version }}] - {{ date.strftime('%Y-%m-%d') }}"
-{% endraw %}
+{% raw %}entry_title_template = "[{{ version }}] - {{ date.strftime('%Y-%m-%d') }}"{% endraw +%}
 md_header_level = "2"
 md_html_anchors = false
 {% if project_kind == "library" %}

@@ -42,7 +42,7 @@ project_kind:
   help: An installable library, or a standalone app you run via `uv run`?
   choices:
     "Application (not packaged; run via `uv run`)": app
-    "Library (packaged with hatchling, publishable to PyPI)": library
+    "Library (packaged with uv_build, publishable to PyPI)": library
   default: app
 
 publish_to_pypi:

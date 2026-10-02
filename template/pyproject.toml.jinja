@@ -1,16 +1,15 @@
 {% if project_kind == "library" -%}
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+# uv's own backend. It builds src/{{ package_name }}/ with no further config.
+# Keep the upper bound at the next uv minor, as `uv init` writes it, and raise
+# both bounds when moving to a new uv minor.
+requires = ["uv_build>=0.12.22,<0.13.0"]
+build-backend = "uv_build"
 
 {% endif -%}
 [project]
 name = "{{ project_name }}"
-{% if project_kind == "library" -%}
-dynamic = ["version"]
-{% else -%}
 version = "0.1.0"
-{% endif -%}
 description = "{{ project_description }}"
 readme = "README.md"
 license = "{{ 'LicenseRef-Proprietary' if license == 'Proprietary' else license }}"
@@ -32,13 +31,7 @@ dev = [
     "scriv>=1.8",
 ]
 
-{% if project_kind == "library" -%}
-[tool.hatch.version]
-path = "src/{{ package_name }}/__init__.py"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/{{ package_name }}"]
-{% else -%}
+{% if project_kind == "app" -%}
 [tool.uv]
 package = false
 {% endif %}
@@ -57,11 +50,9 @@ md_html_anchors = false
 # Without this, two fragments in one category leave a blank line between them,
 # which makes the list loose and fails mdformat on the release commit.
 compact_fragments = true
-{% if project_kind == "library" %}
-version = "literal: src/{{ package_name }}/__init__.py: __version__"
-{% else %}
+# The version's single source is [project] version above, which
+# `uv version --bump` (and the Prepare release workflow) rewrites.
 version = "literal: pyproject.toml: project.version"
-{% endif %}
 
 [tool.ruff]
 line-length = 100

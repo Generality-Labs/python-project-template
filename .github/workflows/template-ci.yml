@@ -107,6 +107,22 @@ jobs:
           done
           echo "scriv collects fragments into CHANGELOG.md in both variants."
 
+          for kind in app library; do
+            out="/tmp/out-$kind"
+            for wf in prepare-release release-on-merge ci; do
+              python3 -c "import sys,yaml; yaml.safe_load(open(sys.argv[1]))" "$out/.github/workflows/$wf.yml"
+            done
+            grep -q '^  workflow_dispatch:' "$out/.github/workflows/ci.yml"
+            ! grep -q 'dynamic = \["version"\]' "$out/pyproject.toml" || exit 1
+          done
+          grep -q 'gh workflow run publish.yml' /tmp/out-library/.github/workflows/release-on-merge.yml
+          ! grep -q 'publish.yml' /tmp/out-app/.github/workflows/release-on-merge.yml || exit 1
+          grep -q '^  workflow_dispatch:' /tmp/out-library/.github/workflows/publish.yml
+          grep -q '^build-backend = "uv_build"' /tmp/out-library/pyproject.toml
+          # The library builds, and __version__ comes from its metadata.
+          (cd /tmp/out-library && uv build -q && uv run python -c "import sample_library as m; assert m.__version__ == '0.1.0', m.__version__")
+          echo "release workflows rendered; library builds with uv_build."
+
           # use_typos defaults on, and answering no drops the hook
           uvx copier copy --trust --defaults --vcs-ref=HEAD \
             --data project_name="sample-no-typos" \

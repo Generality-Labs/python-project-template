@@ -14,6 +14,22 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 ## [Unreleased]
 
+### Added
+
+- A **Prepare release** workflow (`prepare-release.yml`), run from the Actions tab. It bumps `version` in `pyproject.toml` with `uv version --bump`, collects `changelog.d/` into `CHANGELOG.md`, and opens a "Release vX.Y.Z" pull request. Its `auto` bump picks minor when a fragment adds, changes, deprecates or removes something, and patch when fragments only fix; it never picks major. A pull request opened with the default Actions token starts no workflows, so it starts CI on the release branch itself, and those checks satisfy the required check. `ci.yml` gains a `workflow_dispatch` trigger for this.
+- `release-on-merge.yml`: when a `release/vX.Y.Z` pull request merges, it checks that `pyproject.toml` at the merge commit says X.Y.Z, tags the merge commit `vX.Y.Z`, and creates the GitHub release from the changelog section. For a project published to PyPI it then starts `publish.yml`.
+- `publish.yml` takes a `workflow_dispatch` trigger, so `release-on-merge.yml` can start it. A tag created with the default token triggers no workflows, and PyPI trusted publishing can't run from a reusable workflow, so the dispatched run is still `publish.yml`, the workflow the trusted publisher names. It refuses any ref but a `v*` tag, and fails if the tag doesn't match the built wheel's version.
+
+### Changed
+
+- Libraries build with uv's own backend, `uv_build`, instead of hatchling, and keep a static `version` in `pyproject.toml`, so `uv version --bump` manages it. `__version__` reads it back from the installed package metadata (`"unknown"` in a source tree that was never installed). hatchling was there to read the version from `__init__.py`, which uv can't bump; with the version in `pyproject.toml` it isn't needed. `[tool.scriv]` reads the version from `pyproject.toml` for every project kind.
+
+### Upgrading
+
+- Turn on _Settings → Actions → General_ → **Allow GitHub Actions to create and approve pull requests**, or Prepare release fails when it opens the pull request. The weekly template-update workflow needs the same setting.
+- `copier update` will conflict on the libraries' `[build-system]`, `[project] version` and `__init__.py`. Resolve to the template's side: `uv_build`, a static `version`, and `__version__` from metadata. Check that the wheel's contents don't change: uv_build expects the package under `src/<package>/`, and any hatch build options (includes, excludes, force-include) need their `[tool.uv.build-backend]` equivalents.
+- No PyPI change is needed. The trusted publisher still names `publish.yml`. A project that publishes from a differently named workflow should rename it to `publish.yml` and update the publisher.
+
 ## [1.9.1] - 2026-10-02
 
 Repairs 1.9.0, which was tagged before `CHANGELOG.md` had a `[1.9.0]` section. `bump-v1.yml` refuses a release it can't find described, so it left `v1` on 1.8.1 and the 1.9.0 tag lightweight. Consumers land on 1.9.1 rather than 1.9.0; the contents are the same bar this changelog.

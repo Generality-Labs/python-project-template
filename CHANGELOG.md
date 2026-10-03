@@ -14,6 +14,10 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-10-03
+
+Releases are automated. Run **Prepare release** from the Actions tab, approve the CI on the pull request it opens, and merge: the merge tags the release, creates the GitHub release, and publishes to PyPI. Libraries now build with `uv_build`, with the version set once in `pyproject.toml`. Existing projects need one repository setting and a check of their version after `copier update`; see Upgrading.
+
 ### Added
 
 - A **Prepare release** workflow (`prepare-release.yml`), run from the Actions tab. It bumps `version` in `pyproject.toml` with `uv version --bump`, collects `changelog.d/` into `CHANGELOG.md`, and opens a "Release vX.Y.Z" pull request. Its `auto` bump picks minor when a fragment adds, changes, deprecates or removes something, and patch when fragments only fix; it never picks major. It refuses a run with no fragments, a fragment with entries but no category heading, an existing tag, or an already-open release pull request, and is safe to re-run after a failure. CI on the pull request starts in GitHub's approval-required state for pull requests opened by Actions: click **Approve workflows to run**.
@@ -220,4 +224,5 @@ The largest release so far: an optional TypeScript side, automated template upda
 [1.8.1]: https://github.com/MattFisher/python-project-template/compare/v1.8.0...v1.8.1
 [1.9.0]: https://github.com/Generality-Labs/python-project-template/compare/v1.8.1...v1.9.0
 [1.9.1]: https://github.com/Generality-Labs/python-project-template/compare/v1.9.0...v1.9.1
-[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.9.1...HEAD
+[1.10.0]: https://github.com/Generality-Labs/python-project-template/compare/v1.9.1...v1.10.0
+[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.0...HEAD

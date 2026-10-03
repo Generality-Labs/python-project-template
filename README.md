@@ -244,6 +244,8 @@ if you want that automatic. The same applies to release pull requests.
 
 The template releases itself with the same reusable workflows, so each release exercises them before `v1` moves to it:
 
+One-time setup: _Settings → Actions → General_ → **Allow GitHub Actions to create and approve pull requests**, or step 1 fails when it opens the pull request.
+
 1. _Actions_ → **Prepare template release** → _Run workflow_. It takes the next version from the latest `vX.Y.Z` tag, collects `changelog.d/` into `CHANGELOG.md`, and opens a **Release vX.Y.Z** pull request.
 2. On the pull request's Checks tab, click **Approve workflows to run**, then review it. Add a summary paragraph under the new heading if the release needs one.
 3. Merge it. **Template release on merge** tags the merge commit and creates the GitHub release, then starts `bump-v1.yml`, which checks the changelog, annotates the tag, and moves `v1`.

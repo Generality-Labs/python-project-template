@@ -149,7 +149,7 @@ Generated projects release through two reusable workflows here, called from thin
 - [`prepare-release.yml`](.github/workflows/prepare-release.yml), run from the project's Actions tab, bumps the version, collects `changelog.d/` into `CHANGELOG.md`, and opens a "Release vX.Y.Z" pull request.
 - [`release-on-merge.yml`](.github/workflows/release-on-merge.yml), on that pull request's merge, tags the merge commit, creates the GitHub release, and can start another workflow on the tag. Generated PyPI libraries pass `dispatch-workflow: publish.yml`.
 
-Both take `version-source`: `pyproject` for generated projects, where the version is `[project] version`, or `tags`, where it comes from the latest `vX.Y.Z` tag. Publishing stays in each project's own `publish.yml`, because PyPI trusted publishing can't run from a reusable workflow. The callers grant the permissions; the reusable workflows declare none of their own.
+Both take `version-source`: `pyproject` for generated projects, where the version is `[project] version`, or `tags`, where it comes from the latest `vX.Y.Z` tag. Publishing stays in each project's own `publish.yml`, because PyPI trusted publishing can't run from a reusable workflow. The callers grant the permissions. `prepare-release.yml` asks for exactly what every caller grants (contents and pull-requests write); `release-on-merge.yml` declares none and inherits the caller's grant, since it needs `actions: write` only when it starts another workflow.
 
 ## Repo settings as code
 
@@ -222,9 +222,9 @@ enough that every update run conflicts and the PRs become noise.
 Two things worth knowing about the scope:
 
 - **Reusable workflow changes need no update run.** Consumers pin
-  `python-ci.yml@v1`, `node-ci.yml@v1` and the release workflows
-  (`prepare-release.yml@v1`, `release-on-merge.yml@v1`), so moving the `v1`
-  tag propagates those immediately. The update workflow exists only for the copied files —
+  `python-ci.yml@v1`, `node-ci.yml@v1`, `template-update.yml@v1` and the
+  release workflows (`prepare-release.yml@v1`, `release-on-merge.yml@v1`), so
+  moving the `v1` tag propagates those immediately. The update workflow exists only for the copied files —
   `.pre-commit-config.yaml`, `biome.json`, `pyproject.toml` and friends.
 - **It requires `.copier-answers.yml`.** A project adapted by hand rather than
   scaffolded has no baseline for copier to merge from, and the workflow fails
@@ -243,17 +243,15 @@ if you want that automatic. The same applies to release pull requests.
 
 ## Releasing this template
 
-The template releases itself with the same reusable workflows, so each release exercises them before `v1` moves to it:
-
-One-time setup: _Settings → Actions → General_ → **Allow GitHub Actions to create and approve pull requests**, or step 1 fails when it opens the pull request.
+The template releases itself with the same reusable workflows, so each release exercises them before `v1` moves to it. One-time setup: _Settings → Actions → General_ → **Allow GitHub Actions to create and approve pull requests**, or step 1 fails when it opens the pull request.
 
 1. _Actions_ → **Prepare template release** → _Run workflow_. It takes the next version from the latest `vX.Y.Z` tag, collects `changelog.d/` into `CHANGELOG.md`, and opens a **Release vX.Y.Z** pull request.
 2. On the pull request's Checks tab, click **Approve workflows to run**, then review it. Add a summary paragraph under the new heading if the release needs one.
 3. Merge it. **Template release on merge** tags the merge commit and creates the GitHub release, then starts `bump-v1.yml`, which checks the changelog, annotates the tag, and moves `v1`.
 
-If a step fails, the generated projects' RELEASING.md notes apply here too. Re-running Prepare template release replaces its own branch, and re-running Template release on merge skips what already succeeded. If bump-v1 fails after the tag exists, re-run it, or start it with `gh workflow run bump-v1.yml --ref vX.Y.Z`. On a dispatch, it accepts only the newest final `v1.X.Y` tag.
+If a step fails, the "If a step fails" notes in [`template/RELEASING.md.jinja`](template/RELEASING.md.jinja) apply here too, minus the PyPI parts. Re-running Prepare template release replaces its own branch, and re-running Template release on merge skips what already succeeded. If bump-v1 fails after the tag exists, re-run it, or start it with `gh workflow run bump-v1.yml -R Generality-Labs/python-project-template --ref vX.Y.Z` (the `-R` matters in a checkout with an `upstream` remote, which `gh` would otherwise pick). On a dispatch, it accepts only the newest final `v1.X.Y` tag.
 
-Each pull request to this repo adds a fragment under `changelog.d/` (`uvx --from scriv scriv create`), configured by `changelog.d/scriv.ini`. Publishing a release by hand from the GitHub UI still works: `bump-v1.yml` runs on the release event as before.
+Each pull request to this repo adds a fragment under `changelog.d/` (`uvx --from scriv scriv create`), configured by `changelog.d/scriv.ini`. Publishing a release by hand from the GitHub UI still works: `bump-v1.yml` runs on the release event as before, and only once the release's changelog section has been collected and merged, since it checks for it.
 
 ## Versioning
 

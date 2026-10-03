@@ -64,7 +64,7 @@ project_kind:
 
 publish_to_pypi:
   type: bool
-  help: Publish to PyPI on tag? (adds publish.yml + RELEASING.md via trusted publishing)
+  help: Publish to PyPI on release? (adds publish.yml, via trusted publishing, and its setup notes in RELEASING.md)
   # Apps are never published; libraries usually are, but some are packaged only
   # for local install (e.g. an eval), so it's asked separately.
   default: "{{ project_kind == 'library' }}"

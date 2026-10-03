@@ -114,8 +114,15 @@ jobs:
             done
             ! grep -q 'dynamic = \["version"\]' "$out/pyproject.toml" || exit 1
           done
-          grep -q 'gh workflow run publish.yml' /tmp/out-library/.github/workflows/release-on-merge.yml
+          # The scaffolded release workflows are thin callers of this repo's
+          # reusable ones; only a PyPI library starts publish.yml.
+          for kind in app library; do
+            grep -q 'python-project-template/.github/workflows/prepare-release.yml@v1' "/tmp/out-$kind/.github/workflows/prepare-release.yml"
+            grep -q 'python-project-template/.github/workflows/release-on-merge.yml@v1' "/tmp/out-$kind/.github/workflows/release-on-merge.yml"
+          done
+          grep -q 'dispatch-workflow: publish.yml' /tmp/out-library/.github/workflows/release-on-merge.yml
           ! grep -q 'publish.yml' /tmp/out-app/.github/workflows/release-on-merge.yml || exit 1
+          ! grep -q 'actions: write' /tmp/out-app/.github/workflows/release-on-merge.yml || exit 1
           grep -q '^  workflow_dispatch:' /tmp/out-library/.github/workflows/publish.yml
           grep -q '^build-backend = "uv_build"' /tmp/out-library/pyproject.toml
           # The library builds, and __version__ comes from its metadata.

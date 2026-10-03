@@ -1,0 +1,122 @@
+name: Release on merge
+
+# Reusable workflow: when a "Release vX.Y.Z" pull request from
+# prepare-release.yml merges into the default branch, tag the merge commit
+# vX.Y.Z and create its GitHub release from the CHANGELOG.md section, then
+# optionally start another workflow on the tag.
+#
+# Callers run it on `pull_request: types: [closed]`; it does nothing for other
+# pull requests. Permissions come from the caller: contents: write (create the
+# tag and the release), plus actions: write when dispatch-workflow is set.
+#
+# A tag created with the default Actions token triggers no workflows, so a
+# PyPI project passes dispatch-workflow: publish.yml rather than relying on
+# its tag trigger. PyPI trusted publishing can't run from a reusable workflow,
+# so publishing stays in the project's own publish.yml.
+
+on:
+  workflow_call:
+    inputs:
+      version-source:
+        description: >-
+          pyproject: check that [project] version at the merge commit matches
+          the release branch. tags: the branch name is the only version.
+        type: string
+        default: pyproject
+      dispatch-workflow:
+        description: >-
+          A workflow file in the caller's repo to start on the new tag, such as
+          publish.yml. Empty starts nothing.
+        type: string
+        default: ""
+
+jobs:
+  release:
+    name: Tag and release
+    if: >-
+      github.event.pull_request.merged
+      && github.event.pull_request.base.ref == github.event.repository.default_branch
+      && startsWith(github.event.pull_request.head.ref, 'release/v')
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        if: inputs.version-source == 'pyproject'
+        with:
+          enable-cache: false # no caching in a job that can write (cache-poisoning surface)
+
+      - name: Check the version
+        id: version
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          VERSION_SOURCE: ${{ inputs.version-source }}
+        run: |
+          set -euo pipefail
+          version="${HEAD_REF#release/v}"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::release branch ${HEAD_REF} does not name a version X.Y.Z" >&2
+            exit 1
+          fi
+          case "$VERSION_SOURCE" in
+            pyproject)
+              pkg_version=$(uv version --short --frozen)
+              if [ "$pkg_version" != "$version" ]; then
+                echo "::error::branch says ${version} but pyproject.toml at the merge commit says ${pkg_version}" >&2
+                exit 1
+              fi
+              ;;
+            tags) ;;
+            *)
+              echo "::error::version-source must be pyproject or tags, not ${VERSION_SOURCE}" >&2
+              exit 1
+              ;;
+          esac
+          if ! grep -q -F "## [${version}]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md at the merge commit has no ## [${version}] section" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Tag the merge commit and create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+          tag="v${VERSION}"
+          # Safe to re-run: a tag already on this commit, or a release that
+          # already exists, is left alone. A tag on another commit is refused,
+          # since the release would silently attach to the old commit.
+          if tagged=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${tag}" --jq .sha 2>/dev/null); then
+            if [ "$tagged" != "$SHA" ]; then
+              echo "::error::tag ${tag} already exists on ${tagged}, not the merge commit ${SHA}" >&2
+              exit 1
+            fi
+            echo "tag ${tag} already on ${SHA}"
+          else
+            gh api "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/tags/${tag}" -f sha="$SHA" >/dev/null
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "release ${tag} already exists"
+          else
+            awk -v v="$VERSION" '
+              index($0, "## [" v "]") == 1 { found = 1; next }
+              found && /^## / { exit }
+              found && (started || NF) { started = 1; print }
+            ' CHANGELOG.md > notes.md
+            gh release create "$tag" --verify-tag --title "$tag" --notes-file notes.md
+          fi
+
+      - name: Start ${{ inputs.dispatch-workflow }} on the tag
+        if: inputs.dispatch-workflow != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          WORKFLOW: ${{ inputs.dispatch-workflow }}
+        run: gh workflow run "$WORKFLOW" --ref "v${VERSION}"

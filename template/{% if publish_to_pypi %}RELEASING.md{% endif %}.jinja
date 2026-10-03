@@ -24,7 +24,16 @@ One more one-time step: _Settings → Actions → General_ → enable **Allow Gi
 
 To do the same by hand: `uv version --bump minor` (or `patch` / `major`), `uv run scriv collect`, open and merge a pull request, then `git tag vX.Y.Z && git push origin vX.Y.Z` on the merge commit. The tag push starts `publish.yml`.
 
-## Sanity checks before tagging
+## If a step fails
+
+- **Prepare release fails.** Fix the cause and run it again: it force-pushes its own `release/vX.Y.Z` branch, so a half-finished run is replaced. It refuses to run while a release pull request for that version is open, or once the tag exists. Close the pull request, or bump further.
+- **The release pull request's CI never starts.** Click **Approve workflows to run** on its Checks tab. Pushing a commit to the branch yourself also starts it.
+- **Release on merge fails.** Re-run the failed run from the Actions tab. It skips a tag or release that already exists. It refuses a tag that points at a different commit.
+- **Publishing fails.** Fix the cause, for example a trusted publisher on PyPI that names another workflow or environment. Then run `gh workflow run publish.yml --ref vX.Y.Z`. PyPI never accepts the same version twice, so if the upload itself got through, bump to a new version instead.
+
+## Sanity checks before releasing
+
+Run these before **Prepare release**:
 
 ```bash
 uv run pytest

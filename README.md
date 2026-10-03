@@ -214,7 +214,7 @@ project's local edits, so customisations survive.
 
 Answering no leaves the workflow out. It does **not** cut the project off from
 template updates: `.copier-answers.yml` is written either way, so
-`uvx copier update` still works by hand whenever you want it. Worth declining
+`uvx copier update --trust` still works by hand whenever you want it. Worth declining
 for a repo that should pull template changes on its own schedule rather than
 weekly — one in a release freeze, or one whose local edits have diverged far
 enough that every update run conflicts and the PRs become noise.
@@ -222,8 +222,9 @@ enough that every update run conflicts and the PRs become noise.
 Two things worth knowing about the scope:
 
 - **Reusable workflow changes need no update run.** Consumers pin
-  `python-ci.yml@v1` and `node-ci.yml@v1`, so moving the `v1` tag propagates
-  those immediately. The update workflow exists only for the copied files —
+  `python-ci.yml@v1`, `node-ci.yml@v1` and the release workflows
+  (`prepare-release.yml@v1`, `release-on-merge.yml@v1`), so moving the `v1`
+  tag propagates those immediately. The update workflow exists only for the copied files —
   `.pre-commit-config.yaml`, `biome.json`, `pyproject.toml` and friends.
 - **It requires `.copier-answers.yml`.** A project adapted by hand rather than
   scaffolded has no baseline for copier to merge from, and the workflow fails
@@ -249,6 +250,8 @@ One-time setup: _Settings → Actions → General_ → **Allow GitHub Actions to
 1. _Actions_ → **Prepare template release** → _Run workflow_. It takes the next version from the latest `vX.Y.Z` tag, collects `changelog.d/` into `CHANGELOG.md`, and opens a **Release vX.Y.Z** pull request.
 2. On the pull request's Checks tab, click **Approve workflows to run**, then review it. Add a summary paragraph under the new heading if the release needs one.
 3. Merge it. **Template release on merge** tags the merge commit and creates the GitHub release, then starts `bump-v1.yml`, which checks the changelog, annotates the tag, and moves `v1`.
+
+If a step fails, the generated projects' RELEASING.md notes apply here too. Re-running Prepare template release replaces its own branch, and re-running Template release on merge skips what already succeeded. If bump-v1 fails after the tag exists, re-run it, or start it with `gh workflow run bump-v1.yml --ref vX.Y.Z`. On a dispatch, it accepts only the newest final `v1.X.Y` tag.
 
 Each pull request to this repo adds a fragment under `changelog.d/` (`uvx --from scriv scriv create`), configured by `changelog.d/scriv.ini`. Publishing a release by hand from the GitHub UI still works: `bump-v1.yml` runs on the release event as before.
 

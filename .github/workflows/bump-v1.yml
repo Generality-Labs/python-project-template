@@ -146,10 +146,11 @@ jobs:
         run: |
           set -euo pipefail
           # The Move step below puts v1 on this same commit, and copier reads a
-          # template's version with `git describe --tags`. That prefers an
-          # annotated tag over a lightweight one, and falls back to the newest
-          # when they tie -- so with both lightweight it answers "v1", copier
-          # parses that as version 1, and every consumer above 1.0.0 fails
+          # template's version through dunamai, which takes the commit's newest
+          # tag by date. An annotated tag's date is when it was tagged; a
+          # lightweight tag's is its commit's. With both lightweight they tie,
+          # dunamai can answer "v1", copier parses that as version 1, and every
+          # consumer above 1.0.0 fails
           # `copier update` with "Downgrades are not supported". Not merely the
           # scheduled runs: an explicit `--vcs-ref v1.8.0` reads the same commit
           # and fails identically, which strands the project entirely.
@@ -157,7 +158,7 @@ jobs:
           # Publishing a release for a tag that does not exist yet -- the GitHub
           # UI's default, and `gh release create` without --verify-tag -- makes
           # that lightweight tag. Rather than refuse the release over it, give
-          # the tag an annotation here so it outranks v1 and describe answers
+          # the tag an annotation here so it outranks v1 and copier reads
           # "v1.8.0". Annotating v1 too would break it again: v1 is re-tagged on
           # every release, so it would always be the newer of the two.
           #

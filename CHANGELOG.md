@@ -16,6 +16,8 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 ## [1.10.0] - 2026-10-03
 
+Releases are automated, through two reusable workflows that generated projects call from thin `@v1` callers. Run "Prepare release" from the Actions tab, approve the CI on the pull request it opens, and merge. The merge tags the release and creates the GitHub release, and a library on PyPI is then published. Libraries now build with `uv_build`, with the version set once in `pyproject.toml`. Every project needs one repository setting and `copier update --trust`, and libraries should check their version and wheel after updating; see Upgrading.
+
 ### Added
 
 - Automated releases. Run **Prepare release** from the Actions tab: it bumps `version` in `pyproject.toml` with `uv version --bump`, collects `changelog.d/` into `CHANGELOG.md`, and opens a "Release vX.Y.Z" pull request. Approve its CI and merge it, and **Release on merge** tags the merge commit, creates the GitHub release from the changelog section, and, for a library published to PyPI, starts `publish.yml`. The `auto` bump picks minor when a fragment adds, changes, deprecates or removes something, and patch when fragments only fix; it never picks major.

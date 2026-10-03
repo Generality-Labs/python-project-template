@@ -61,8 +61,10 @@ From inside a project that was generated from this template (it has a
 `.copier-answers.yml`):
 
 ```bash
-uvx copier update
+uvx copier update --trust
 ```
+
+`--trust` lets the template run its migrations, such as the one in 1.10.0 that keeps a library's version when its version moves into `pyproject.toml`. Without it, an update that crosses a migration stops and changes nothing.
 
 Copier does a 3-way merge between the old template output, the new output, and
 your local edits — so you get template improvements without losing your
@@ -139,6 +141,15 @@ The template leaves them off: nursery rules are explicitly unstable and may
 change between releases. Turn them on per-project when you want them, and keep
 `tsc --noEmit` under `strict` as the backstop either way — Biome's inference is
 newer and less complete than a full type-checker's.
+
+## The reusable release workflows
+
+Generated projects release through two reusable workflows here, called from thin scaffolded callers pinned to `@v1`:
+
+- [`prepare-release.yml`](.github/workflows/prepare-release.yml), run from the project's Actions tab, bumps the version, collects `changelog.d/` into `CHANGELOG.md`, and opens a "Release vX.Y.Z" pull request.
+- [`release-on-merge.yml`](.github/workflows/release-on-merge.yml), on that pull request's merge, tags the merge commit, creates the GitHub release, and can start another workflow on the tag. Generated PyPI libraries pass `dispatch-workflow: publish.yml`.
+
+Both take `version-source`: `pyproject` for generated projects, where the version is `[project] version`, or `tags`, where it comes from the latest `vX.Y.Z` tag. Publishing stays in each project's own `publish.yml`, because PyPI trusted publishing can't run from a reusable workflow. The callers grant the permissions; the reusable workflows declare none of their own.
 
 ## Repo settings as code
 
@@ -225,9 +236,19 @@ It's off by default: copier's merge is deterministic and usually clean, and a
 conflict is often exactly the thing a human should look at.
 
 One GitHub quirk the PR body also mentions: it's opened with the default
-`GITHUB_TOKEN`, and GitHub deliberately does not run workflows on PRs created
-that way. Close and reopen the PR, or push a commit to it, to get CI to run —
-or swap in a PAT or GitHub App token if you want that automatic.
+`GITHUB_TOKEN`, so GitHub starts its CI in an approval-required state. Click
+**Approve workflows to run** on the PR, or swap in a PAT or GitHub App token
+if you want that automatic. The same applies to release pull requests.
+
+## Releasing this template
+
+The template releases itself with the same reusable workflows, so each release exercises them before `v1` moves to it:
+
+1. _Actions_ → **Prepare template release** → _Run workflow_. It takes the next version from the latest `vX.Y.Z` tag, collects `changelog.d/` into `CHANGELOG.md`, and opens a **Release vX.Y.Z** pull request.
+2. On the pull request's Checks tab, click **Approve workflows to run**, then review it. Add a summary paragraph under the new heading if the release needs one.
+3. Merge it. **Template release on merge** tags the merge commit and creates the GitHub release, then starts `bump-v1.yml`, which checks the changelog, annotates the tag, and moves `v1`.
+
+Each pull request to this repo adds a fragment under `changelog.d/` (`uvx --from scriv scriv create`), configured by `changelog.d/scriv.ini`. Publishing a release by hand from the GitHub UI still works: `bump-v1.yml` runs on the release event as before.
 
 ## Versioning
 

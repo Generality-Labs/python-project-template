@@ -87,7 +87,10 @@ jobs:
           # library-only files present for library, absent for app
           test -f /tmp/out-library/RELEASING.md
           test -f /tmp/out-library/.github/workflows/publish.yml
-          test ! -e /tmp/out-app/RELEASING.md
+          # Every project releases; only PyPI libraries get the publishing notes.
+          test -f /tmp/out-app/RELEASING.md
+          grep -q 'trusted publishing' /tmp/out-library/RELEASING.md
+          ! grep -q 'trusted publishing' /tmp/out-app/RELEASING.md || exit 1
           test ! -e /tmp/out-app/.github/workflows/publish.yml
           echo "Both variants rendered and validated."
 

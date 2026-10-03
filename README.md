@@ -6,7 +6,8 @@ standard so the repos don't drift:
 
 - **uv** for dependency management (`uv sync`, `uv run`), pinned Python via
   `.python-version`
-- **hatchling** build backend for libraries; apps stay `package = false`
+- **uv_build** build backend for libraries, with the version set once in
+  `pyproject.toml` and bumped by `uv version`; apps stay `package = false`
 - **pre-commit** stack: ruff (lint + format), [zizmor](https://docs.zizmor.sh/)
   (Actions security), mdformat, optionally typos — plus
   **[basedpyright](https://docs.basedpyright.com/)** (always) and **pytest**

@@ -2,8 +2,9 @@ name: Release on merge
 
 # When a "Release vX.Y.Z" pull request from prepare-release.yml merges, tag
 # the merge commit and create its GitHub release from the CHANGELOG.md
-# section{% if publish_to_pypi %}, then start publish.yml to upload it to PyPI{% endif %}. Other pull
-# requests are ignored. The steps live in the template's reusable workflow.
+# section{% if publish_to_pypi %}, then start publish.yml to upload it to PyPI{% endif %}.
+# Other pull requests are ignored. The steps live in the template's reusable
+# workflow.
 
 on:
   pull_request:
@@ -12,8 +13,10 @@ on:
 permissions:
   contents: read
 
+# Keyed on the branch: every closed pull request starts this workflow, and a
+# shared group would let an unrelated one cancel a pending release run.
 concurrency:
-  group: release-on-merge
+  group: release-on-merge-${{ '{{' }} github.event.pull_request.head.ref {{ '}}' }}
   cancel-in-progress: false
 
 jobs:

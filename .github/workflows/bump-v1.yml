@@ -44,6 +44,28 @@ jobs:
       # No checkout on purpose: moving a ref needs the API, not a working copy,
       # and skipping it avoids persisting credentials on disk for a job that
       # holds the one token able to rewrite what every consumer runs.
+      - name: Refuse a dispatch on a prerelease or an older tag
+        # The release event path gets these checks from the release itself
+        # (prerelease flag) and from being the release just published. A
+        # dispatch can name any tag, and an older one would move v1 back for
+        # every consumer.
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$TAG" =~ ^v1\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::${TAG} is not a final v1.X.Y release tag" >&2
+            exit 1
+          fi
+          newest=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/v1." --jq '.[].ref' \
+            | sed 's#^refs/tags/##' | grep -E '^v1\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+          if [ "$TAG" != "$newest" ]; then
+            echo "::error::${TAG} is not the newest v1 release tag (${newest}); v1 only moves forward" >&2
+            exit 1
+          fi
+
       - name: Refuse to move v1 off main
         env:
           GH_TOKEN: ${{ github.token }}

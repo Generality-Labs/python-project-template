@@ -8,9 +8,9 @@ name: Prepare release
 # version-source: pyproject. This repo calls it with version-source: tags,
 # since a Copier template has no package version, only tags.
 #
-# Permissions come from the caller, which must grant contents: write (push the
-# release branch) and pull-requests: write (open the pull request). The
-# caller's repo needs Settings > Actions > General > "Allow GitHub Actions to
+# The caller must grant contents: write (push the release branch) and
+# pull-requests: write (open the pull request); the job asks for exactly
+# those. The caller's repo needs Settings > Actions > General > "Allow GitHub Actions to
 # create and approve pull requests", or opening the pull request fails.
 #
 # CI on the release pull request waits for approval: a pull request opened
@@ -41,10 +41,16 @@ on:
         type: string
         default: ""
 
+# Nothing at workflow level; the job below asks for what it needs.
+permissions: {}
+
 jobs:
   prepare:
     name: Open the release pull request
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the release branch
+      pull-requests: write # open the release pull request
     steps:
       - name: Check the inputs and the branch
         env:
@@ -91,7 +97,12 @@ jobs:
           ]
           sections = set()
           for path in fragments:
-              text = re.sub(r"<!--.*?-->", "", path.read_text(encoding="utf-8"), flags=re.S)
+              raw = path.read_text(encoding="utf-8")
+              # scriv starts a fragment after any line containing its insert
+              # marker, even quoted, and silently drops the lines above it.
+              if "scriv-insert-here" in raw or "scriv-end-here" in raw:
+                  sys.exit(f"::error::{path} quotes a scriv marker, which would make scriv drop part of it. Describe the marker instead of quoting it.")
+              text = re.sub(r"<!--.*?-->", "", raw, flags=re.S)
               found = {m.strip() for m in re.findall(r"^### (.+)$", text, flags=re.M)}
               if text.strip() and not found:
                   sys.exit(f"::error::{path} has entries but no ### category heading.")
@@ -132,7 +143,7 @@ jobs:
               patch) version="${major}.${minor}.$((patch + 1))" ;;
             esac
             echo "Latest tag ${latest}; releasing ${version}."
-            uvx --from 'scriv>=1.8' scriv collect --version "$version"
+            uvx --from 'scriv==1.8.0' scriv collect --version "$version"
           fi
 
           # Keep Keep-a-Changelog compare links current, where CHANGELOG.md has
@@ -161,7 +172,7 @@ jobs:
             if [ "$VERSION_SOURCE" = pyproject ]; then
               run=(uv run --group dev pre-commit)
             else
-              run=(uvx pre-commit)
+              run=(uvx --from 'pre-commit==4.6.2' pre-commit)
             fi
             "${run[@]}" run mdformat --files CHANGELOG.md || "${run[@]}" run mdformat --files CHANGELOG.md
           fi

@@ -31,7 +31,11 @@ on:
         default: ""
 
 jobs:
-  release:
+  # No permissions block: the job takes what the caller grants. actions: write
+  # is needed only with dispatch-workflow, and a called job that asks for more
+  # than its caller grants fails at startup, so an app's caller (which grants
+  # contents: write alone) could not use a job that declared it.
+  release: # zizmor: ignore[excessive-permissions] -- inherits the caller's grant; see above
     name: Tag and release
     if: >-
       github.event.pull_request.merged

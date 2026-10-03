@@ -13,8 +13,10 @@ on:
 permissions:
   contents: read
 
+# Keyed on the branch: every closed pull request starts this workflow, and a
+# shared group would let an unrelated one cancel a pending release run.
 concurrency:
-  group: release-on-merge
+  group: release-on-merge-${{ github.event.pull_request.head.ref }}
   cancel-in-progress: false
 
 jobs:

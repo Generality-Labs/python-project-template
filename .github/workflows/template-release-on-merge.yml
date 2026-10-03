@@ -1,0 +1,30 @@
+name: Template release on merge
+
+# When a template "Release vX.Y.Z" pull request merges, tag it and create the
+# GitHub release, then start bump-v1.yml on the tag. bump-v1 checks the
+# changelog, annotates the tag and moves v1. A release created with the
+# default Actions token doesn't trigger bump-v1's release event, hence the
+# explicit start.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+# Keyed on the branch: every closed pull request starts this workflow, and a
+# shared group would let an unrelated one cancel a pending release run.
+concurrency:
+  group: release-on-merge-${{ github.event.pull_request.head.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    uses: ./.github/workflows/release-on-merge.yml
+    permissions:
+      contents: write # create the tag and the release
+      actions: write # start bump-v1.yml
+    with:
+      version-source: tags
+      dispatch-workflow: bump-v1.yml

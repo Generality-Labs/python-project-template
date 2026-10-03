@@ -1,0 +1,38 @@
+name: Prepare template release
+
+# Cuts a release of this template with the same reusable workflow generated
+# projects call, so each template release exercises it first. A Copier
+# template has no package version: the next version comes from the latest
+# vX.Y.Z tag. Merging the pull request runs template-release-on-merge.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: >-
+          Version bump. auto picks minor when a fragment adds, changes,
+          deprecates or removes something, and patch when fragments only fix.
+          auto never picks major, which would leave the moving v1 tag behind.
+        type: choice
+        default: auto
+        options:
+          - auto
+          - patch
+          - minor
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    uses: ./.github/workflows/prepare-release.yml
+    permissions:
+      contents: write # push the release branch
+      pull-requests: write # open the release pull request
+    with:
+      bump: ${{ inputs.bump }}
+      version-source: tags

@@ -1,0 +1,222 @@
+name: Prepare release
+
+# Reusable workflow: bump the version, collect the changelog.d/ fragments into
+# CHANGELOG.md, and open a "Release vX.Y.Z" pull request. Merging that pull
+# request runs release-on-merge.yml, which tags and releases it.
+#
+# Generated projects call it from their own prepare-release.yml with
+# version-source: pyproject. This repo calls it with version-source: tags,
+# since a Copier template has no package version, only tags.
+#
+# The caller must grant contents: write (push the release branch) and
+# pull-requests: write (open the pull request); the job asks for exactly
+# those. The caller's repo needs Settings > Actions > General > "Allow GitHub Actions to
+# create and approve pull requests", or opening the pull request fails.
+#
+# CI on the release pull request waits for approval: a pull request opened
+# with the default Actions token starts its workflows in an approval-required
+# state. Open its Checks tab and click "Approve workflows to run". A re-run
+# after a failure is safe.
+
+on:
+  workflow_call:
+    inputs:
+      bump:
+        description: >-
+          auto, patch, minor or major. auto picks minor when a fragment adds,
+          changes, deprecates or removes something, and patch when fragments
+          only fix. auto never picks major.
+        type: string
+        default: auto
+      version-source:
+        description: >-
+          pyproject: the version is [project] version, bumped with
+          `uv version --bump`, and scriv and mdformat run from the project's
+          dev group. tags: the version is the latest vX.Y.Z tag, bumped here,
+          and scriv runs with uvx.
+        type: string
+        default: pyproject
+      python-version:
+        description: Python for uv. Empty uses the project's .python-version.
+        type: string
+        default: ""
+
+# Nothing at workflow level; the job below asks for what it needs.
+permissions: {}
+
+jobs:
+  prepare:
+    name: Open the release pull request
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the release branch
+      pull-requests: write # open the release pull request
+    steps:
+      - name: Check the inputs and the branch
+        env:
+          BUMP: ${{ inputs.bump }}
+          VERSION_SOURCE: ${{ inputs.version-source }}
+          REF: ${{ github.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          case "$BUMP" in auto | patch | minor | major) ;; *)
+            echo "::error::bump must be auto, patch, minor or major, not ${BUMP}" >&2; exit 1 ;;
+          esac
+          case "$VERSION_SOURCE" in pyproject | tags) ;; *)
+            echo "::error::version-source must be pyproject or tags, not ${VERSION_SOURCE}" >&2; exit 1 ;;
+          esac
+          if [ "$REF" != "refs/heads/${DEFAULT_BRANCH}" ]; then
+            echo "::error::run Prepare release from ${DEFAULT_BRANCH}, not ${REF}" >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # tags, for version-source: tags
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: ${{ inputs.python-version }}
+          enable-cache: false # no caching in a job that can push (cache-poisoning surface)
+
+      - name: Choose the version bump
+        id: bump
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          fragments = [
+              p for p in sorted(Path("changelog.d").glob("*.md"))
+              if not p.name[0].isupper()  # TEMPLATE.md, README.md
+          ]
+          sections = set()
+          for path in fragments:
+              raw = path.read_text(encoding="utf-8")
+              # scriv starts a fragment after any line containing its insert
+              # marker, even quoted, and silently drops the lines above it.
+              if "scriv-insert-here" in raw or "scriv-end-here" in raw:
+                  sys.exit(f"::error::{path} quotes a scriv marker, which would make scriv drop part of it. Describe the marker instead of quoting it.")
+              text = re.sub(r"<!--.*?-->", "", raw, flags=re.S)
+              found = {m.strip() for m in re.findall(r"^### (.+)$", text, flags=re.M)}
+              if text.strip() and not found:
+                  sys.exit(f"::error::{path} has entries but no ### category heading.")
+              sections |= found
+          if not sections:
+              sys.exit("::error::changelog.d/ has no fragments with entries, so there is nothing to release.")
+
+          bump = os.environ["BUMP"]
+          if bump == "auto":
+              minor = {"Added", "Changed", "Deprecated", "Removed"}
+              bump = "minor" if sections & minor else "patch"
+          print(f"Sections: {', '.join(sorted(sections))}. Bump: {bump}.")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"bump={bump}\n")
+          PY
+
+      - name: Bump the version and collect the changelog
+        id: version
+        env:
+          BUMP: ${{ steps.bump.outputs.bump }}
+          VERSION_SOURCE: ${{ inputs.version-source }}
+        run: |
+          set -euo pipefail
+          if [ "$VERSION_SOURCE" = pyproject ]; then
+            uv version --bump "$BUMP"
+            version=$(uv version --short)
+            uv run --group dev scriv collect
+          else
+            latest=$(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)
+            if [ -z "$latest" ]; then
+              echo "::error::no vX.Y.Z tag to bump from" >&2
+              exit 1
+            fi
+            IFS=. read -r major minor patch <<< "${latest#v}"
+            case "$BUMP" in
+              major) version="$((major + 1)).0.0" ;;
+              minor) version="${major}.$((minor + 1)).0" ;;
+              patch) version="${major}.${minor}.$((patch + 1))" ;;
+            esac
+            echo "Latest tag ${latest}; releasing ${version}."
+            uvx --from 'scriv==1.8.0' scriv collect --version "$version"
+          fi
+
+          # Keep Keep-a-Changelog compare links current, where CHANGELOG.md has
+          # them: "[unreleased]: <repo>/compare/vPREV...HEAD" gains a line for
+          # the new version and moves on to it. A file without one is unchanged.
+          VERSION="$version" python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          v = os.environ["VERSION"]
+          path = Path("CHANGELOG.md")
+          text = path.read_text(encoding="utf-8")
+          pattern = re.compile(r"^\[(unreleased)\]: (\S+/compare/)(\S+)\.\.\.HEAD$", re.I | re.M)
+          text, n = pattern.subn(
+              lambda m: f"[{v}]: {m[2]}{m[3]}...v{v}\n[{m[1]}]: {m[2]}v{v}...HEAD", text, count=1
+          )
+          if n:
+              path.write_text(text, encoding="utf-8")
+              print(f"Added the [{v}] compare link.")
+          PY
+
+          # A first mdformat pass may tidy the collected section; the second
+          # must then pass.
+          if [ -f .pre-commit-config.yaml ] && grep -q 'id: mdformat' .pre-commit-config.yaml; then
+            if [ "$VERSION_SOURCE" = pyproject ]; then
+              run=(uv run --group dev pre-commit)
+            else
+              run=(uvx --from 'pre-commit==4.6.2' pre-commit)
+            fi
+            "${run[@]}" run mdformat --files CHANGELOG.md || "${run[@]}" run mdformat --files CHANGELOG.md
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Push the release branch and open the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          branch="release/v${VERSION}"
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v${VERSION}" >/dev/null 2>&1; then
+            echo "::error::tag v${VERSION} already exists; bump further, or delete the tag if it is stale" >&2
+            exit 1
+          fi
+          open_prs=$(gh pr list --head "$branch" --state open --json number --jq length)
+          if [ "$open_prs" != "0" ]; then
+            echo "::error::a release pull request from ${branch} is already open" >&2
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add CHANGELOG.md changelog.d
+          for f in pyproject.toml uv.lock; do
+            if [ -f "$f" ]; then git add "$f"; fi
+          done
+          git commit -m "Release v${VERSION}"
+          # --force: a run that failed after pushing (for example, before the
+          # Actions setting was on) leaves this branch behind with no PR.
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/${branch}"
+
+          awk -v v="$VERSION" '
+            index($0, "## [" v "]") == 1 { found = 1; next }
+            found && /^## / { exit }
+            found && (started || NF) { started = 1; print }
+          ' CHANGELOG.md > notes.md
+          {
+            echo "Merging this pull request tags v${VERSION} and creates its GitHub release."
+            echo
+            echo "CI waits for approval: open the Checks tab and click **Approve workflows to run**."
+            echo
+            cat notes.md
+          } > body.md
+          gh pr create --base "$BASE" --head "$branch" --title "Release v${VERSION}" --body-file body.md

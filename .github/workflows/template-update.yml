@@ -146,9 +146,9 @@ jobs:
           fi
           BODY="$BODY
 
-          Note: opened with the default \`GITHUB_TOKEN\`, so GitHub will not run
-          this repository's own workflows on it. Close and reopen the PR, or push
-          a commit, to get CI to run."
+          Note: opened with the default \`GITHUB_TOKEN\`, so GitHub starts this
+          repository's CI on it in an approval-required state. Click
+          **Approve workflows to run** on the Checks tab to start it."
 
           gh pr create --head "$BRANCH" --title "chore: apply template updates from $REF" --body "$BODY" \
             || gh pr edit "$BRANCH" --body "$BODY"

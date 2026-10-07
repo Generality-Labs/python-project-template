@@ -14,6 +14,15 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 <!-- scriv-insert-here -->
 
+## [1.10.1] - 2026-10-07
+
+### Fixed
+
+- Every generated project gets RELEASING.md, not only PyPI libraries, with the PyPI setup and publishing steps only where they apply. It covers the one-time setup (including a greyed-out Actions setting), each release, the manual path with `gh release create`, and an "If a step fails" section. That section lists every refusal, says which ones a re-run clears, and explains why a failed publish needs a new release when the fix is in the repo. A project that deleted its RELEASING.md doesn't get it back from `copier update`.
+- The fragment template says Prepare release collects fragments. Every `copier update` command in the docs has `--trust`. The README lists all the workflows `v1` delivers, describes the reusable workflows' permissions correctly, and its bump-v1 recovery command passes `-R`.
+- The CHANGELOG preamble and `bump-v1.yml` explain release-tag annotation correctly. Copier reads the version through dunamai, which takes the commit's newest tag by date and breaks a tie by name, so two lightweight tags give `v1`. It doesn't use `git describe`. bump-v1 annotates every release, since Release on merge creates the tag lightweight.
+- `template-update.yml` no longer fails every run once its update branch exists. It pushed with a bare `--force-with-lease` to a URL, which gives git no remote-tracking ref to lease against, so the push was refused with `stale info` whenever the branch was already there. A run that pushed the branch but couldn't open its PR (for example, before the Actions pull-request setting was on) left every later run failing. The push now leases against the branch as checkout fetched it, so it still refuses to overwrite a commit pushed during the run.
+
 ## [1.10.0] - 2026-10-03
 
 Releases are automated, through two reusable workflows that generated projects call from thin `@v1` callers. Run "Prepare release" from the Actions tab, approve the CI on the pull request it opens, and merge. The merge tags the release and creates the GitHub release, and a library on PyPI is then published. Libraries now build with `uv_build`, with the version set once in `pyproject.toml`. Every project needs one repository setting and `copier update --trust`, and libraries should check their version and wheel after updating; see Upgrading.
@@ -228,4 +237,5 @@ The largest release so far: an optional TypeScript side, automated template upda
 [1.9.0]: https://github.com/Generality-Labs/python-project-template/compare/v1.8.1...v1.9.0
 [1.9.1]: https://github.com/Generality-Labs/python-project-template/compare/v1.9.0...v1.9.1
 [1.10.0]: https://github.com/Generality-Labs/python-project-template/compare/v1.9.1...v1.10.0
-[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.0...HEAD
+[1.10.1]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.0...v1.10.1
+[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.1...HEAD

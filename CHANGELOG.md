@@ -14,6 +14,12 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 <!-- scriv-insert-here -->
 
+## [1.10.2] - 2026-11-04
+
+### Fixed
+
+- Ruff pre-commit hooks use the project's locked development dependency, so dependency updates keep hooks and command-line checks on the same version.
+
 ## [1.10.1] - 2026-10-07
 
 ### Fixed
@@ -238,4 +244,5 @@ The largest release so far: an optional TypeScript side, automated template upda
 [1.9.1]: https://github.com/Generality-Labs/python-project-template/compare/v1.9.0...v1.9.1
 [1.10.0]: https://github.com/Generality-Labs/python-project-template/compare/v1.9.1...v1.10.0
 [1.10.1]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.0...v1.10.1
-[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.1...HEAD
+[1.10.2]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.1...v1.10.2
+[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.2...HEAD

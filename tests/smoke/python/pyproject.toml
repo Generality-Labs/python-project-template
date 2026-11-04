@@ -6,7 +6,7 @@ requires-python = ">=3.12"
 dependencies = []
 
 [dependency-groups]
-dev = ["basedpyright>=1.39", "pytest>=8", "pre-commit>=4"]
+dev = ["basedpyright>=1.39", "pytest>=8", "pre-commit>=4", "ruff==0.15.20"]
 
 [tool.uv]
 package = false

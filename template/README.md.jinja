@@ -15,6 +15,8 @@ Each pull request adds a changelog fragment rather than editing `CHANGELOG.md`, 
 
 Linting (ruff, [zizmor](https://docs.zizmor.sh/), mdformat) runs via [pre-commit](https://pre-commit.com); CI runs the same stack plus basedpyright and pytest via the shared [`python-ci`](https://github.com/{{ github_owner }}/python-project-template) reusable workflow.
 
+Ruff runs through `uv run --locked`, so pre-commit and command-line checks use the version in `uv.lock`. Dependabot updates Ruff through the project's development dependencies.
+
 ## Releasing
 
 See [RELEASING.md](RELEASING.md).

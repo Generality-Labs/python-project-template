@@ -51,7 +51,7 @@ jobs:
             # is useless if copier drops the executable bit.
             test -x "/tmp/out-$kind/.claude/hooks/session-start.sh"
             bash -n "/tmp/out-$kind/.claude/hooks/session-start.sh"
-            # shellcheck-py builds from source and its build can't verify the
+            # The shellcheck-py build can't verify the
             # MITM CA some sandboxes present once Python 3.13 turns on strict
             # certificate checking, which breaks `git commit` outright there. The
             # pin below the default is what avoids it, so losing the pin while
@@ -67,7 +67,8 @@ jobs:
           done
           # The applier is tested against a stubbed gh, here in the template repo
           # (the file's path has copier syntax in it, so the test loads it by path).
-          uvx --with pytest --from pytest pytest -q tests/test_setup_repo.py
+          uv run --no-project --with pytest --with copier --with pre-commit --with pyyaml \
+            pytest -q tests/test_setup_repo.py tests/test_ruff_hooks.py
           uvx copier copy --trust --defaults --vcs-ref=HEAD \
             --data project_name="sample-repo-settings" \
             --data project_description="A sample managing its repo settings" \

@@ -219,4 +219,9 @@ jobs:
             echo
             cat notes.md
           } > body.md
-          gh pr create --base "$BASE" --head "$branch" --title "Release v${VERSION}" --body-file body.md
+          url=$(gh pr create --base "$BASE" --head "$branch" --title "Release v${VERSION}" --body-file body.md)
+          echo "Release pull request: ${url}"
+          # Surface the link where someone reading the run looks first: the
+          # Annotations list on the run page, and the job summary.
+          echo "::notice title=Release v${VERSION} pull request::${url}"
+          echo "Release pull request: ${url}" >> "$GITHUB_STEP_SUMMARY"

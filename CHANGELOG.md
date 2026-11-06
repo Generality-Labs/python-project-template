@@ -14,6 +14,13 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 <!-- scriv-insert-here -->
 
+## [1.11.0] - 2026-11-06
+
+### Added
+
+- The reusable `prepare-release` workflow links the release pull request it opened from the run's Annotations list and job summary.
+- The scaffolded `publish.yml` links the published PyPI release from the run's Annotations list and job summary.
+
 ## [1.10.3] - 2026-11-06
 
 ### Fixed
@@ -252,4 +259,5 @@ The largest release so far: an optional TypeScript side, automated template upda
 [1.10.1]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.0...v1.10.1
 [1.10.2]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.1...v1.10.2
 [1.10.3]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.2...v1.10.3
-[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.3...HEAD
+[1.11.0]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.3...v1.11.0
+[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.11.0...HEAD

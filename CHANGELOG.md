@@ -14,6 +14,12 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 <!-- scriv-insert-here -->
 
+## [1.10.3] - 2026-11-06
+
+### Fixed
+
+- The scaffolded `publish.yml` pins `pypa/gh-action-pypi-publish` v1.14.3; earlier releases are covered by `GHSA-5xjx-3w67-w9x9` and fail the online zizmor audit.
+
 ## [1.10.2] - 2026-11-04
 
 ### Fixed
@@ -245,4 +251,5 @@ The largest release so far: an optional TypeScript side, automated template upda
 [1.10.0]: https://github.com/Generality-Labs/python-project-template/compare/v1.9.1...v1.10.0
 [1.10.1]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.0...v1.10.1
 [1.10.2]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.1...v1.10.2
-[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.2...HEAD
+[1.10.3]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.2...v1.10.3
+[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.3...HEAD

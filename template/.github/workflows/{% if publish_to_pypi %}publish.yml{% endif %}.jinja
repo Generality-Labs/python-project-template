@@ -63,3 +63,11 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+      - name: Link the published release
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          url="https://pypi.org/project/{{ project_name }}/${VERSION#v}/"
+          echo "::notice title=Published {{ project_name }} ${VERSION#v}::${url}"
+          echo "Published: ${url}" >> "$GITHUB_STEP_SUMMARY"

@@ -66,7 +66,7 @@ jobs:
 
       - name: Link the published release
         env:
-          VERSION: ${{ github.ref_name }}
+          VERSION: ${{ '{{' }} github.ref_name {{ '}}' }}
         run: |
           url="https://pypi.org/project/{{ project_name }}/${VERSION#v}/"
           echo "::notice title=Published {{ project_name }} ${VERSION#v}::${url}"

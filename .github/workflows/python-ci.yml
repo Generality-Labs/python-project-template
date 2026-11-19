@@ -81,18 +81,41 @@ jobs:
       - name: Pytest
         run: uv run pytest
 
+      # pre-commit builds hook environments with the interpreter named by
+      # `python3.X` in .pre-commit-config.yaml (default_language_version and
+      # any per-hook language_version), looked up on PATH. Runner images do not
+      # all ship those versions: ubuntu-26.04 has no python3.12. uv installs
+      # each named version and puts a `python3.X` executable in its bin dir.
+      - name: Install the Python versions pre-commit hooks name
+        run: |
+          mapfile -t versions < <(grep -ohE 'python3\.[0-9]+' .pre-commit-config.yaml | sed 's/^python//' | sort -u)
+          if [ "${#versions[@]}" -gt 0 ]; then
+            uv python install "${versions[@]}"
+            uv python dir --bin >> "$GITHUB_PATH"
+          fi
+        shell: bash
+
       # We cache pre-commit's hook environments ourselves rather than using
       # pre-commit/action: that action keys its cache on env.pythonLocation,
       # which only setup-python populates. With setup-uv the segment is empty,
       # collapsing the key to the config hash alone — shared across every
       # Python version AND OS in a caller's matrix. A macOS job then restores a
       # Linux-built cache (/home/runner paths) → InvalidManifestError. Keying on
-      # runner.os + the Python version keeps each matrix leg isolated.
+      # runner.os + the Python version keeps each matrix leg isolated. The
+      # image name (ImageOS, such as ubuntu26) is in the key too: hook
+      # environments point at the interpreter they were built with, so a
+      # cache from another image needs rebuilding, and a hit would stop the
+      # rebuilt environments from being saved.
+      - name: Name the runner image for the cache key
+        id: image
+        run: echo "os=${ImageOS:-unknown}" >> "$GITHUB_OUTPUT"
+        shell: bash
+
       - name: Cache pre-commit environments
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pre-commit
-          key: pre-commit-3|${{ runner.os }}|${{ inputs.python-version }}|${{ hashFiles(format('{0}/.pre-commit-config.yaml', inputs.working-directory)) }}
+          key: pre-commit-4|${{ runner.os }}|${{ steps.image.outputs.os }}|${{ inputs.python-version }}|${{ hashFiles(format('{0}/.pre-commit-config.yaml', inputs.working-directory)) }}
 
       - name: Pre-commit (ruff, zizmor, mdformat)
         env:

@@ -235,6 +235,7 @@ jobs:
     name: Smoke-test python-ci.yml
     uses: ./.github/workflows/python-ci.yml
     with:
+      python-version: "3.13"
       working-directory: tests/smoke/python
       typecheck-paths: src
 

@@ -81,18 +81,22 @@ jobs:
       - name: Pytest
         run: uv run pytest
 
-      # We cache pre-commit's hook environments ourselves rather than using
-      # pre-commit/action: that action keys its cache on env.pythonLocation,
-      # which only setup-python populates. With setup-uv the segment is empty,
-      # collapsing the key to the config hash alone — shared across every
-      # Python version AND OS in a caller's matrix. A macOS job then restores a
-      # Linux-built cache (/home/runner paths) → InvalidManifestError. Keying on
-      # runner.os + the Python version keeps each matrix leg isolated.
+      # The template pins Python hooks to 3.12 even when the project uses another version.
+      - name: Install Python for pre-commit hooks
+        run: uv python install 3.12
+
+      # Hook environments contain absolute interpreter paths. Include the image
+      # so a runner upgrade gets a new cache even when runner.os stays the same.
+      - name: Name the runner image for the cache key
+        id: image
+        run: echo "os=${ImageOS:-unknown}" >> "$GITHUB_OUTPUT"
+        shell: bash
+
       - name: Cache pre-commit environments
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pre-commit
-          key: pre-commit-3|${{ runner.os }}|${{ inputs.python-version }}|${{ hashFiles(format('{0}/.pre-commit-config.yaml', inputs.working-directory)) }}
+          key: pre-commit-4|${{ runner.os }}|${{ steps.image.outputs.os }}|${{ inputs.python-version }}|${{ hashFiles(format('{0}/.pre-commit-config.yaml', inputs.working-directory)) }}
 
       - name: Pre-commit (ruff, zizmor, mdformat)
         env:

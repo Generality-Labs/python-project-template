@@ -1,3 +1,3 @@
 ### Fixed
 
-- `python-ci.yml` installs the Python versions that `.pre-commit-config.yaml` names (`python3.12` by default) with uv before running pre-commit. GitHub moved `ubuntu-latest` to Ubuntu 26.04, which has no `python3.12`, and pre-commit failed with `failed to find interpreter for Builtin discover of python_spec='python3.12'` while building the first hook environment. The pre-commit cache key now includes the runner image name, so environments built on Ubuntu 24.04 are rebuilt and saved once.
+- `python-ci.yml` installs Python 3.12 for the template's pre-commit hooks, so projects using another Python version can run them on Ubuntu 26.04. The workflow also includes the runner image in the cache key so that pre-commit rebuilds its hook environments when the image changes.

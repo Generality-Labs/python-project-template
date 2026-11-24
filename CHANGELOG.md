@@ -14,6 +14,12 @@ Entries for 1.0.0 through 1.5.2 were backfilled from git history after the fact,
 
 <!-- scriv-insert-here -->
 
+## [1.11.1] - 2026-11-24
+
+### Fixed
+
+- `python-ci.yml` installs Python 3.12 for the template's pre-commit hooks, so projects using another Python version can run them on Ubuntu 26.04. The workflow also includes the runner image in the cache key so that pre-commit rebuilds its hook environments when the image changes.
+
 ## [1.11.0] - 2026-11-06
 
 ### Added
@@ -260,4 +266,5 @@ The largest release so far: an optional TypeScript side, automated template upda
 [1.10.2]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.1...v1.10.2
 [1.10.3]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.2...v1.10.3
 [1.11.0]: https://github.com/Generality-Labs/python-project-template/compare/v1.10.3...v1.11.0
-[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.11.0...HEAD
+[1.11.1]: https://github.com/Generality-Labs/python-project-template/compare/v1.11.0...v1.11.1
+[unreleased]: https://github.com/Generality-Labs/python-project-template/compare/v1.11.1...HEAD
